@@ -27,13 +27,16 @@ function App() {
     };
     fetchNews();
   }, []);
-  if (loading) {
-    return (
-      <div className="grid place-items-center h-screen w-full bg-white">
-        <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+if (loading) {
+  return (
+    <div className="fixed inset-0 flex items-center justify-center bg-white z-50">
+      <div className="text-center">
+        <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
+        <div className="mt-3 text-gray-700 font-medium">Loading...</div>
       </div>
-    );
-  }
+    </div>
+  );
+}
   const toggleBookmark = (link) => {
     setFavorites((prev) => {
       let updated;
