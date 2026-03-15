@@ -78,12 +78,12 @@ if (loading) {
       </h1>
       <div className="flex flex-col items-center gap-2 mb-6">
         <p className="text-black">Kanha Gupta</p>
-        <button
+        {/* <button
           onClick={fetchNews}
           className="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700 transition"
         >
           Refresh News
-        </button>
+        </button> */}
       </div>
       <div className="grid gap-6 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
         {news?.map((n, idx) => (
