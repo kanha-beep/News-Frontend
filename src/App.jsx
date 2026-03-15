@@ -30,9 +30,9 @@ function App() {
   return (
     <div className="min-h-screen bg-gray-100 p-6">
       <h1 className="text-2xl font-bold mb-6 text-center text-black">
-        Hindu News
+        The Hindu News
       </h1>
-
+      <p className="mb-6 text-center text-black">Kanha Gupta</p>
       <div className="grid gap-6 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
         {news?.items?.map((n, idx) => (
           <div
