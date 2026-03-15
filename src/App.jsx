@@ -1,0 +1,71 @@
+import { useState } from "react";
+import { useEffect } from "react";
+import axios from "axios";
+function App() {
+  const [news, setNews] = useState([]);
+  const [loading, setLoading] = useState(false);
+  useEffect(() => {
+    const fetchNews = async () => {
+      setLoading(true);
+      try {
+        const res = await axios.get(
+          `${import.meta.env.VITE_API_URI}/api/hindu`,
+        );
+        console.log("res: ", res?.data);
+        setNews(res?.data || []);
+        setLoading(false);
+      } catch (error) {
+        console.log("error: ", error?.response);
+      } finally {
+        setLoading(true);
+      }
+    };
+    fetchNews();
+  }, []);
+  if (loading) {
+    <div className="grid place-items-center h-screen w-full bg-white">
+      <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+    </div>;
+  }
+  return (
+    <div className="min-h-screen bg-gray-100 p-6">
+      <h1 className="text-2xl font-bold mb-6 text-center text-black">
+        Hindu News
+      </h1>
+
+      <div className="grid gap-6 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+        {news?.items?.map((n, idx) => (
+          <div
+            key={idx}
+            className="bg-white rounded-xl shadow-md p-5 hover:shadow-xl transition duration-300 flex flex-col justify-between"
+          >
+            <div className="text-xs text-blue-500 font-semibold mb-2">
+              {n?.tags?.length ? n.tags.join(", ") : "No Tags"}
+            </div>
+            <div className="text-xs text-gray-500/50 font-semibold mb-2">
+              {n?.pubDate}
+            </div>
+
+            <h2 className="text-lg font-semibold mb-2 line-clamp-2 text-black">
+              {n?.title}
+            </h2>
+
+            <p className="text-sm text-gray-600 mb-4 line-clamp-3">
+              {n?.description}
+            </p>
+
+            <a
+              href={n?.link}
+              target="_blank"
+              className="mt-auto inline-block text-sm text-white bg-blue-600 px-4 py-2 rounded hover:bg-blue-700"
+            >
+              Read Article
+            </a>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+export default App;
