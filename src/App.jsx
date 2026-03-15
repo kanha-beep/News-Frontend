@@ -61,7 +61,7 @@ function App() {
             <p className="text-sm text-gray-600 mb-4 line-clamp-3">
               {n?.description}
             </p>
-            <button onClick={() => toggleBookmark(n)}>
+            <button onClick={() => toggleBookmark({link:n?.link})}>
               {n.favorite ? (
                 <FaBookmark className="text-blue-600 text-lg" />
               ) : (
