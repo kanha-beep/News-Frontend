@@ -29,7 +29,7 @@ function App() {
   }
   return (
     <div className="min-h-screen bg-gray-100 p-6">
-      <h1 className="text-2xl font-bold mb-6 text-center text-black">
+      <h1 className="text-2xl font-bold mb-2 text-center text-black">
         The Hindu News
       </h1>
       <p className="mb-6 text-center text-black">Kanha Gupta</p>
@@ -64,6 +64,9 @@ function App() {
           </div>
         ))}
       </div>
+      <p className="mt-2 text-center text-black">
+        All credit goes to The Hindu API URL
+      </p>
     </div>
   );
 }
