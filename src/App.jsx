@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useEffect } from "react";
 import axios from "axios";
+import { FaRegBookmark, FaBookmark } from "react-icons/fa";
 function App() {
   const [news, setNews] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -27,6 +28,13 @@ function App() {
       <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
     </div>;
   }
+  const toggleBookmark = async (n) => {
+    try {
+      await axios.post(`${import.meta.env.VITE_API_URI}/api/favorite`, n);
+    } catch (err) {
+      console.log(err);
+    }
+  };
   return (
     <div className="min-h-screen bg-gray-100 p-6">
       <h1 className="text-2xl font-bold mb-2 text-center text-black">
@@ -53,7 +61,13 @@ function App() {
             <p className="text-sm text-gray-600 mb-4 line-clamp-3">
               {n?.description}
             </p>
-
+            <button onClick={() => toggleBookmark(n)}>
+              {n.favorite ? (
+                <FaBookmark className="text-blue-600 text-lg" />
+              ) : (
+                <FaRegBookmark className="text-gray-400 text-lg" />
+              )}
+            </button>
             <a
               href={n?.link}
               target="_blank"
