@@ -9,24 +9,28 @@ function App() {
     const saved = localStorage.getItem("favorites");
     return saved ? JSON.parse(saved) : [];
   });
+  const fetchNews = async () => {
+    setLoading(true);
+    try {
+      const res = await axios.get(`${import.meta.env.VITE_API_URI}/api/hindu`);
+      console.log("res: ", res?.data);
+      setNews(res?.data?.items || []);
+    } catch (error) {
+      console.log("error: ", error?.response);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchNews = async () => {
-      setLoading(true);
-      try {
-        const res = await axios.get(
-          `${import.meta.env.VITE_API_URI}/api/hindu`,
-        );
-        console.log("res: ", res?.data);
-        setNews(res?.data?.items || []);
-        setLoading(false);
-      } catch (error) {
-        console.log("error: ", error?.response);
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchNews();
   }, []);
+
+  const handleReadArticle = (link) => {
+    setLoading(true);
+    window.open(link, "_blank");
+    setTimeout(() => setLoading(false), 800);
+  };
 if (loading) {
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-white z-50">
@@ -72,7 +76,15 @@ if (loading) {
       <h1 className="text-2xl font-bold mb-2 text-center text-black">
         The Hindu News
       </h1>
-      <p className="mb-6 text-center text-black">Kanha Gupta</p>
+      <div className="flex flex-col items-center gap-2 mb-6">
+        <p className="text-black">Kanha Gupta</p>
+        <button
+          onClick={fetchNews}
+          className="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700 transition"
+        >
+          Refresh News
+        </button>
+      </div>
       <div className="grid gap-6 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
         {news?.map((n, idx) => (
           <div
@@ -107,13 +119,12 @@ if (loading) {
               {n?.description}
             </p>
 
-            <a
-              href={n?.link}
-              target="_blank"
+            <button
+              onClick={() => handleReadArticle(n?.link)}
               className="mt-auto inline-block text-sm text-white bg-blue-600 px-4 py-2 rounded hover:bg-blue-700"
             >
               Read Article
-            </a>
+            </button>
           </div>
         ))}
       </div>
