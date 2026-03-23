@@ -18,6 +18,7 @@ function App() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
+  const [toast, setToast] = useState({ show: false, message: "", type: "success" });
 
   const matchingTags = availableTags.filter((tag) => {
     const normalizedTagFilter = tagQuery.trim().toLowerCase();
@@ -118,7 +119,7 @@ function App() {
 
   const handleToggleFavorite = async (article) => {
     try {
-      await axios.post(`${API_BASE_URL}/api/favorite`, article);
+      const res = await axios.post(`${API_BASE_URL}/api/favorite`, article);
       await loadNews(
         activeView,
         tagQuery,
@@ -126,6 +127,13 @@ function App() {
         monthFilter,
         currentPage,
       );
+      setToast({
+        show: true,
+        message: res.data?.favorite
+          ? "Added to favorites"
+          : "Removed from favorites",
+        type: res.data?.favorite ? "success" : "info",
+      });
     } catch (err) {
       setError(err?.response?.data?.message || "Unable to update favorite.");
     }
@@ -170,20 +178,48 @@ function App() {
     setCurrentPage(1);
   }, [activeView, dateFilter, monthFilter, tagQuery]);
 
+  useEffect(() => {
+    if (!toast.show) return;
+
+    const timeout = setTimeout(() => {
+      setToast((prev) => ({ ...prev, show: false }));
+    }, 2200);
+
+    return () => clearTimeout(timeout);
+  }, [toast]);
+
   return (
     <div className="min-h-screen bg-slate-100 text-slate-900">
+      {toast.show ? (
+        <div className="fixed right-4 top-4 z-50">
+          <div
+            className={`rounded-xl px-4 py-3 text-sm font-semibold shadow-lg ${
+              toast.type === "success"
+                ? "bg-emerald-500 text-white"
+                : "bg-slate-900 text-white"
+            }`}
+          >
+            {toast.message}
+          </div>
+        </div>
+      ) : null}
       <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
         <nav className="mb-6 flex flex-col gap-4 rounded-2xl bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h1 className="text-3xl font-bold">The Hindu News</h1>
-            <a
-              href="https://wa.me/919131395725"
-              target="_blank"
-              rel="noreferrer"
-              className="text-sm font-medium uppercase tracking-[0.25em] text-blue-600 hover:text-emerald-600"
-            >
-              Kanha Gupta
-            </a>
+            <div className="flex gap-3">
+              <p className="text-sm font-medium uppercase tracking-[0.25em] text-blue-600">
+                Kanha Gupta
+              </p>
+              <a
+                href="https://wa.me/919131395725"
+                target="_blank"
+                rel="noreferrer"
+                className="text-sm text-red-600"
+              >
+                Contact
+              </a>
+            </div>
           </div>
 
           <div className="flex flex-wrap gap-3">
