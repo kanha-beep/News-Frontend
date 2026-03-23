@@ -289,7 +289,7 @@ function App() {
                       key={tag}
                       type="button"
                       onMouseDown={() => applyTagQuery(tag)}
-                      className="block w-full rounded-lg px-3 py-2 text-left text-sm font-medium text-sky-900 hover:bg-white"
+                      className="block w-full rounded-lg px-3 py-2 text-left text-sm font-medium text-blue-300 hover:bg-white"
                     >
                       #{tag}
                     </button>
