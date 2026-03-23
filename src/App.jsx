@@ -7,6 +7,14 @@ const API_BASE_URL = import.meta.env.VITE_API_URI;
 function App() {
   const [news, setNews] = useState([]);
   const [availableTags, setAvailableTags] = useState([]);
+  const [favoriteLinks, setFavoriteLinks] = useState(() => {
+    try {
+      const saved = localStorage.getItem("favoriteNewsLinks");
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
   const [activeView, setActiveView] = useState("all");
   const [tagQuery, setTagQuery] = useState("");
   const [showTagSuggestions, setShowTagSuggestions] = useState(false);
@@ -45,11 +53,19 @@ function App() {
     date = dateFilter,
     month = monthFilter,
     page = currentPage,
+    links = favoriteLinks,
   ) => {
     const params = {};
 
     if (view === "favorites") {
-      params.favorite = true;
+      if (!links.length) {
+        setNews([]);
+        setTotalItems(0);
+        setTotalPages(1);
+        return;
+      }
+
+      params.links = links.join(",");
     }
 
     if (tag.trim()) {
@@ -73,6 +89,10 @@ function App() {
   const syncNews = async () => {
     await axios.get(`${API_BASE_URL}/api/hindu`);
   };
+
+  useEffect(() => {
+    localStorage.setItem("favoriteNewsLinks", JSON.stringify(favoriteLinks));
+  }, [favoriteLinks]);
 
   useEffect(() => {
     const bootstrap = async () => {
@@ -119,27 +139,35 @@ function App() {
     };
 
     updateNews();
-  }, [activeView, tagQuery, dateFilter, monthFilter, currentPage, loading]);
+  }, [activeView, tagQuery, dateFilter, monthFilter, currentPage, favoriteLinks, loading]);
 
   const handleToggleFavorite = async (article) => {
-    try {
-      const res = await axios.post(`${API_BASE_URL}/api/favorite`, article);
+    const isFavorite = favoriteLinks.includes(article.link);
+    const updatedLinks = isFavorite
+      ? favoriteLinks.filter((link) => link !== article.link)
+      : [...favoriteLinks, article.link];
+
+    setFavoriteLinks(updatedLinks);
+    setToast({
+      show: true,
+      message: isFavorite ? "Removed from favorites" : "Added to favorites",
+      type: isFavorite ? "info" : "success",
+    });
+
+    if (activeView === "favorites" && isFavorite && news.length === 1 && currentPage > 1) {
+      setCurrentPage((page) => Math.max(1, page - 1));
+      return;
+    }
+
+    if (activeView === "favorites") {
       await loadNews(
         activeView,
         tagQuery,
         dateFilter,
         monthFilter,
         currentPage,
+        updatedLinks,
       );
-      setToast({
-        show: true,
-        message: res.data?.favorite
-          ? "Added to favorites"
-          : "Removed from favorites",
-        type: res.data?.favorite ? "success" : "info",
-      });
-    } catch (err) {
-      setError(err?.response?.data?.message || "Unable to update favorite.");
     }
   };
 
@@ -432,7 +460,7 @@ function App() {
                           article.favorite ? "Remove favorite" : "Add favorite"
                         }
                       >
-                        {article.favorite ? (
+                        {favoriteLinks.includes(article.link) ? (
                           <FaBookmark className="text-red-500" />
                         ) : (
                           <FaRegBookmark className="text-slate-400 hover:text-red-500" />
