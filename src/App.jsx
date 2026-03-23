@@ -57,8 +57,6 @@ function App() {
     page = currentPage,
     links = normalizedFavoriteLinks,
   ) => {
-    const params = {};
-
     if (view === "favorites") {
       if (!links.length) {
         setNews([]);
@@ -66,23 +64,27 @@ function App() {
         setTotalPages(1);
         return;
       }
-
-      params.links = links.join(",");
     }
 
-    if (tag.trim()) {
-      params.tag = tag.trim().toLowerCase();
-    }
+    const payload = {
+      tag: tag.trim() ? tag.trim().toLowerCase() : "",
+      date: date || "",
+      month: date ? "" : month || "",
+      page,
+      links: view === "favorites" ? links : [],
+    };
 
-    if (date) {
-      params.date = date;
-    } else if (month) {
-      params.month = month;
-    }
-
-    params.page = page;
-
-    const res = await axios.get(`${API_BASE_URL}/api/news`, { params });
+    const res =
+      view === "favorites"
+        ? await axios.post(`${API_BASE_URL}/api/news/filter`, payload)
+        : await axios.get(`${API_BASE_URL}/api/news`, {
+            params: {
+              tag: payload.tag,
+              date: payload.date,
+              month: payload.month,
+              page: payload.page,
+            },
+          });
     setNews(res.data?.items || []);
     setTotalItems(res.data?.total || 0);
     setTotalPages(res.data?.totalPages || 1);
