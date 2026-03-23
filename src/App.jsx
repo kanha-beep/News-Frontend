@@ -18,7 +18,11 @@ function App() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
-  const [toast, setToast] = useState({ show: false, message: "", type: "success" });
+  const [toast, setToast] = useState({
+    show: false,
+    message: "",
+    type: "success",
+  });
 
   const matchingTags = availableTags.filter((tag) => {
     const normalizedTagFilter = tagQuery.trim().toLowerCase();
@@ -255,7 +259,7 @@ function App() {
           </div>
         </nav>
 
-        <div className="mb-6 grid gap-4 rounded-2xl bg-white p-4 shadow-sm lg:grid-cols-[minmax(0,1fr)_220px_220px_180px]">
+        <div className="mb-6 grid gap-4 rounded-2xl bg-white p-4 shadow-sm xl:grid-cols-[minmax(0,1fr)_220px_220px_180px]">
           <div>
             <label
               htmlFor="tag-search"
@@ -294,51 +298,51 @@ function App() {
               ) : null}
             </div>
           </div>
+          <div className="grid grid-cols-2 gap-3 xl:contents">
+            <div className="flex-1">
+              <label
+                htmlFor="date-search"
+                className="mb-2 block text-sm font-semibold text-slate-700"
+              >
+                Search by date
+              </label>
+              <input
+                id="date-search"
+                type="date"
+                value={dateFilter}
+                onChange={(e) => {
+                  setDateFilter(e.target.value);
+                  setCurrentPage(1);
+                  if (e.target.value) {
+                    setMonthFilter("");
+                  }
+                }}
+                className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none transition focus:border-blue-500"
+              />
+            </div>
 
-          <div>
-            <label
-              htmlFor="date-search"
-              className="mb-2 block text-sm font-semibold text-slate-700"
-            >
-              Search by date
-            </label>
-            <input
-              id="date-search"
-              type="date"
-              value={dateFilter}
-              onChange={(e) => {
-                setDateFilter(e.target.value);
-                setCurrentPage(1);
-                if (e.target.value) {
-                  setMonthFilter("");
-                }
-              }}
-              className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none transition focus:border-blue-500"
-            />
+            <div className="flex-1">
+              <label
+                htmlFor="month-search"
+                className="mb-2 block text-sm font-semibold text-slate-700"
+              >
+                Search by month
+              </label>
+              <input
+                id="month-search"
+                type="month"
+                value={monthFilter}
+                onChange={(e) => {
+                  setMonthFilter(e.target.value);
+                  setCurrentPage(1);
+                  if (e.target.value) {
+                    setDateFilter("");
+                  }
+                }}
+                className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none transition focus:border-blue-500"
+              />
+            </div>
           </div>
-
-          <div>
-            <label
-              htmlFor="month-search"
-              className="mb-2 block text-sm font-semibold text-slate-700"
-            >
-              Search by month
-            </label>
-            <input
-              id="month-search"
-              type="month"
-              value={monthFilter}
-              onChange={(e) => {
-                setMonthFilter(e.target.value);
-                setCurrentPage(1);
-                if (e.target.value) {
-                  setDateFilter("");
-                }
-              }}
-              className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none transition focus:border-blue-500"
-            />
-          </div>
-
           <div className="flex flex-col justify-end gap-2">
             <p className="text-sm text-slate-500">
               {activeView === "favorites"
