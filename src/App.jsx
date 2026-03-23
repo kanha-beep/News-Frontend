@@ -210,7 +210,7 @@ function App() {
       <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
         <nav className="mb-6 flex flex-col gap-4 rounded-2xl bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-3xl font-bold">The Hindu News</h1>
+            <h1 className="text-3xl font-bold">N E W Z</h1>
             <div className="flex gap-3">
               <p className="text-sm font-medium uppercase tracking-[0.25em] text-blue-600">
                 Kanha Gupta
