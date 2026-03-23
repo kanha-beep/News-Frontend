@@ -32,6 +32,8 @@ function App() {
     type: "success",
   });
 
+  const normalizedFavoriteLinks = favoriteLinks.filter(Boolean);
+
   const matchingTags = availableTags.filter((tag) => {
     const normalizedTagFilter = tagQuery.trim().toLowerCase();
 
@@ -53,7 +55,7 @@ function App() {
     date = dateFilter,
     month = monthFilter,
     page = currentPage,
-    links = favoriteLinks,
+    links = normalizedFavoriteLinks,
   ) => {
     const params = {};
 
@@ -142,10 +144,10 @@ function App() {
   }, [activeView, tagQuery, dateFilter, monthFilter, currentPage, favoriteLinks, loading]);
 
   const handleToggleFavorite = async (article) => {
-    const isFavorite = favoriteLinks.includes(article.link);
+    const isFavorite = normalizedFavoriteLinks.includes(article.link);
     const updatedLinks = isFavorite
-      ? favoriteLinks.filter((link) => link !== article.link)
-      : [...favoriteLinks, article.link];
+      ? normalizedFavoriteLinks.filter((link) => link !== article.link)
+      : [...normalizedFavoriteLinks, article.link];
 
     setFavoriteLinks(updatedLinks);
     setToast({
@@ -168,6 +170,17 @@ function App() {
         currentPage,
         updatedLinks,
       );
+    }
+  };
+
+  const handleViewChange = (view) => {
+    setActiveView(view);
+    setCurrentPage(1);
+
+    if (view === "favorites" && normalizedFavoriteLinks.length === 0) {
+      setNews([]);
+      setTotalItems(0);
+      setTotalPages(1);
     }
   };
 
@@ -257,7 +270,7 @@ function App() {
           <div className="flex flex-wrap gap-3">
             <button
               type="button"
-              onClick={() => setActiveView("all")}
+              onClick={() => handleViewChange("all")}
               className={`rounded-full px-4 py-2 text-sm font-semibold ${
                 activeView === "all"
                   ? "bg-slate-900 text-white"
@@ -268,7 +281,7 @@ function App() {
             </button>
             <button
               type="button"
-              onClick={() => setActiveView("favorites")}
+              onClick={() => handleViewChange("favorites")}
               className={`rounded-full px-4 py-2 text-sm font-semibold ${
                 activeView === "favorites"
                   ? "bg-red-500 text-white"
@@ -457,10 +470,12 @@ function App() {
                         onClick={() => handleToggleFavorite(article)}
                         className="rounded-full p-2 text-lg"
                         aria-label={
-                          article.favorite ? "Remove favorite" : "Add favorite"
+                          normalizedFavoriteLinks.includes(article.link)
+                            ? "Remove favorite"
+                            : "Add favorite"
                         }
                       >
-                        {favoriteLinks.includes(article.link) ? (
+                        {normalizedFavoriteLinks.includes(article.link) ? (
                           <FaBookmark className="text-red-500" />
                         ) : (
                           <FaRegBookmark className="text-slate-400 hover:text-red-500" />
