@@ -74,17 +74,33 @@ function App() {
       links: view === "favorites" ? links : [],
     };
 
-    const res =
-      view === "favorites"
-        ? await axios.post(`${API_BASE_URL}/api/news/filter`, payload)
-        : await axios.get(`${API_BASE_URL}/api/news`, {
-            params: {
-              tag: payload.tag,
-              date: payload.date,
-              month: payload.month,
-              page: payload.page,
-            },
-          });
+    let res;
+
+    if (view === "favorites") {
+      try {
+        res = await axios.post(`${API_BASE_URL}/api/news/filter`, payload);
+      } catch (_error) {
+        res = await axios.get(`${API_BASE_URL}/api/news`, {
+          params: {
+            tag: payload.tag,
+            date: payload.date,
+            month: payload.month,
+            page: payload.page,
+            links: payload.links.join(","),
+          },
+        });
+      }
+    } else {
+      res = await axios.get(`${API_BASE_URL}/api/news`, {
+        params: {
+          tag: payload.tag,
+          date: payload.date,
+          month: payload.month,
+          page: payload.page,
+        },
+      });
+    }
+
     setNews(res.data?.items || []);
     setTotalItems(res.data?.total || 0);
     setTotalPages(res.data?.totalPages || 1);
