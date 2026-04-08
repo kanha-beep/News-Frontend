@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import axios from "axios";
 import { FaBookmark, FaRegBookmark } from "react-icons/fa";
 
@@ -51,11 +51,12 @@ function App() {
   const [titleQuery, setTitleQuery] = useState("");
   const [showTagSuggestions, setShowTagSuggestions] = useState(false);
   const [dateFilter, setDateFilter] = useState("");
-  const [monthFilter, setMonthFilter] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(true);
+  const [loadingProgress, setLoadingProgress] = useState(0);
+  const [loadingMessage, setLoadingMessage] = useState("Fetching news...");
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
   const [toast, setToast] = useState({
@@ -71,6 +72,46 @@ function App() {
     password: "",
   });
   const [pendingFavoriteArticle, setPendingFavoriteArticle] = useState(null);
+  const loadingProgressRef = useRef(0);
+  const loadingAnimationRef = useRef(null);
+
+  const updateLoadingProgress = (value) => {
+    const nextValue = Math.max(0, Math.min(100, Math.round(value)));
+    loadingProgressRef.current = nextValue;
+    setLoadingProgress(nextValue);
+  };
+
+  const animateLoadingProgress = (target, duration = 500) =>
+    new Promise((resolve) => {
+      if (loadingAnimationRef.current) {
+        clearInterval(loadingAnimationRef.current);
+      }
+
+      const start = loadingProgressRef.current;
+      const end = Math.max(start, Math.min(100, Math.round(target)));
+
+      if (start === end) {
+        resolve();
+        return;
+      }
+
+      const intervalMs = 16;
+      const totalSteps = Math.max(1, Math.round(duration / intervalMs));
+      let currentStep = 0;
+
+      loadingAnimationRef.current = setInterval(() => {
+        currentStep += 1;
+        const nextValue = start + ((end - start) * currentStep) / totalSteps;
+        updateLoadingProgress(nextValue);
+
+        if (currentStep >= totalSteps) {
+          clearInterval(loadingAnimationRef.current);
+          loadingAnimationRef.current = null;
+          updateLoadingProgress(end);
+          resolve();
+        }
+      }, intervalMs);
+    });
 
   const loadTags = async () => {
     const res = await axios.get(`${API_BASE_URL}/api/tags`);
@@ -99,7 +140,6 @@ function App() {
     tag = tagQuery,
     title = titleQuery,
     date = dateFilter,
-    month = monthFilter,
     page = currentPage,
     authToken = token,
   ) => {
@@ -115,7 +155,6 @@ function App() {
         tag: tag.trim() ? tag.trim().toLowerCase() : "",
         title: title.trim(),
         date: date || "",
-        month: date ? "" : month || "",
         page,
         favoritesOnly: view === "favorites",
       },
@@ -156,10 +195,15 @@ function App() {
   useEffect(() => {
     const bootstrap = async () => {
       setLoading(true);
+      updateLoadingProgress(0);
+      setLoadingMessage("Fetching latest articles...");
       setError("");
 
       try {
+        await animateLoadingProgress(18, 350);
         await syncNews();
+        setLoadingMessage("Checking your account...");
+        await animateLoadingProgress(44, 400);
 
         if (token) {
           try {
@@ -170,7 +214,11 @@ function App() {
           }
         }
 
-        await Promise.all([loadTags(), loadNews("all", "", "", "", "", 1)]);
+        setLoadingMessage("Loading tags and headlines...");
+        await animateLoadingProgress(72, 400);
+        await Promise.all([loadTags(), loadNews("all", "", "", 1)]);
+        setLoadingMessage("Finishing up...");
+        await animateLoadingProgress(100, 300);
       } catch (err) {
         setError(
           err?.response?.data?.message || "Unable to load news right now.",
@@ -181,6 +229,14 @@ function App() {
     };
 
     bootstrap();
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (loadingAnimationRef.current) {
+        clearInterval(loadingAnimationRef.current);
+      }
+    };
   }, []);
 
   useEffect(() => {
@@ -196,7 +252,6 @@ function App() {
           tagQuery,
           titleQuery,
           dateFilter,
-          monthFilter,
           currentPage,
         );
       } catch (err) {
@@ -221,7 +276,6 @@ function App() {
     tagQuery,
     titleQuery,
     dateFilter,
-    monthFilter,
     currentPage,
     token,
     loading,
@@ -230,7 +284,7 @@ function App() {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [activeView, dateFilter, monthFilter, tagQuery, titleQuery]);
+  }, [activeView, dateFilter, tagQuery, titleQuery]);
 
   useEffect(() => {
     if (!toast.show) return;
@@ -295,7 +349,6 @@ function App() {
           tagQuery,
           titleQuery,
           dateFilter,
-          monthFilter,
           1,
           nextToken,
         );
@@ -371,7 +424,6 @@ function App() {
           tagQuery,
           titleQuery,
           dateFilter,
-          monthFilter,
           currentPage,
         );
       }
@@ -408,14 +460,7 @@ function App() {
       await syncNews();
       await Promise.all([
         loadTags(),
-        loadNews(
-          activeView,
-          tagQuery,
-          titleQuery,
-          dateFilter,
-          monthFilter,
-          currentPage,
-        ),
+        loadNews(activeView, tagQuery, titleQuery, dateFilter, currentPage),
       ]);
     } catch (err) {
       setError(err?.response?.data?.message || "Unable to refresh news.");
@@ -429,7 +474,6 @@ function App() {
     setTitleQuery("");
     setShowTagSuggestions(false);
     setDateFilter("");
-    setMonthFilter("");
     setCurrentPage(1);
   };
 
@@ -653,7 +697,7 @@ function App() {
           </div>
         </nav>
 
-        <div className="mb-6 grid gap-4 rounded-2xl bg-white p-4 shadow-sm xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_220px_220px_180px]">
+        <div className="mb-6 grid grid-cols-2 gap-3 rounded-2xl bg-white p-4 shadow-sm lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_auto] lg:items-end">
           <SearchField
             id="tag-search"
             label="Search by tag"
@@ -693,70 +737,30 @@ function App() {
             }}
             placeholder="Search headline text..."
           />
-          <div className="grid grid-cols-2 gap-3 xl:contents">
-            <div className="flex-1">
-              <label
-                htmlFor="date-search"
-                className="mb-2 block text-sm font-semibold text-slate-700"
-              >
-                Search by date
-              </label>
-              <input
-                id="date-search"
-                type="date"
-                value={dateFilter}
-                onChange={(e) => {
-                  setDateFilter(e.target.value);
-                  setCurrentPage(1);
-                  if (e.target.value) {
-                    setMonthFilter("");
-                  }
-                }}
-                className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none transition focus:border-blue-500"
-              />
-            </div>
 
-            <div className="flex-1">
-              <label
-                htmlFor="month-search"
-                className="mb-2 block text-sm font-semibold text-slate-700"
-              >
-                Search by month
-              </label>
-              <input
-                id="month-search"
-                type="month"
-                value={monthFilter}
-                onChange={(e) => {
-                  setMonthFilter(e.target.value);
-                  setCurrentPage(1);
-                  if (e.target.value) {
-                    setDateFilter("");
-                  }
-                }}
-                className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none transition focus:border-blue-500"
-              />
-            </div>
+          <div className="min-w-0 lg:mt-0">
+            <label
+              htmlFor="date-search"
+              className="mb-2 block text-sm font-semibold text-slate-700"
+            >
+              Search by date
+            </label>
+            <input
+              id="date-search"
+              type="date"
+              value={dateFilter}
+              onChange={(e) => {
+                setDateFilter(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none transition focus:border-blue-500"
+            />
           </div>
-          <div className="flex flex-col justify-end gap-2">
-            <p className="text-sm text-slate-500">
-              {activeView === "favorites"
-                ? "Showing only favorite articles"
-                : "Showing all stored articles"}
-            </p>
-            {tagQuery ? (
-              <p className="text-xs font-medium text-blue-600">
-                Live tag search: {tagQuery}
-              </p>
-            ) : (
-              <p className="text-xs text-slate-400">
-                Type a tag and results update live.
-              </p>
-            )}
+          <div className="flex items-center mt-8">
             <button
               type="button"
               onClick={clearAllFilters}
-              className="rounded-xl bg-slate-200 px-4 py-3 text-sm font-semibold text-slate-700"
+              className="rounded-xl bg-slate-200 p-3 text-sm font-semibold text-slate-700 whitespace-nowrap lg:self-end lg:p-4"
             >
               Clear Filters
             </button>
@@ -765,11 +769,20 @@ function App() {
 
         {loading ? (
           <div className="flex min-h-[40vh] items-center justify-center">
-            <div className="text-center">
-              <div className="mx-auto h-12 w-12 animate-spin rounded-full border-4 border-blue-500 border-t-transparent" />
-              <p className="mt-3 text-sm font-medium text-slate-600">
-                Loading news...
+            <div className="w-full max-w-xl rounded-3xl bg-white p-8 text-left shadow-lg">
+              <p className="text-xs font-semibold uppercase tracking-[0.3em] text-blue-600">
+                Fetching News
               </p>
+              <h2 className="mt-3 text-2xl font-bold text-slate-800">
+                {loadingProgress}%
+              </h2>
+              <p className="mt-2 text-sm text-slate-500">{loadingMessage}</p>
+              <div className="mt-6 h-3 overflow-hidden rounded-full bg-slate-200">
+                <div
+                  className="h-full rounded-full bg-gradient-to-r from-blue-500 via-sky-500 to-cyan-400 transition-[width] duration-300 ease-out"
+                  style={{ width: `${loadingProgress}%` }}
+                />
+              </div>
             </div>
           </div>
         ) : (
