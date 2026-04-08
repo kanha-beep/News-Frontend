@@ -756,7 +756,7 @@ function App() {
               className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none transition focus:border-blue-500"
             />
           </div>
-          <div className="flex items-center mt-8">
+          <div className="flex items-center mt-7">
             <button
               type="button"
               onClick={clearAllFilters}
