@@ -779,7 +779,7 @@ function App() {
               <p className="mt-2 text-sm text-slate-500">{loadingMessage}</p>
               <div className="mt-6 h-3 overflow-hidden rounded-full bg-slate-200">
                 <div
-                  className="h-full rounded-full bg-gradient-to-r from-blue-500 via-sky-500 to-cyan-400 transition-[width] duration-300 ease-out"
+                  className="loader-bar h-full rounded-full bg-gradient-to-r from-blue-500 via-sky-500 to-cyan-400 transition-[width] duration-300 ease-out"
                   style={{ width: `${loadingProgress}%` }}
                 />
               </div>

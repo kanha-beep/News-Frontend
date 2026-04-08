@@ -35,6 +35,36 @@ body {
   min-height: 100vh;
 }
 
+@keyframes loader-shimmer {
+  0% {
+    transform: translateX(-130%);
+  }
+  100% {
+    transform: translateX(130%);
+  }
+}
+
+.loader-bar {
+  position: relative;
+  overflow: hidden;
+}
+
+.loader-bar::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  width: 40%;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.2) 30%,
+    rgba(255, 255, 255, 0.7) 50%,
+    rgba(255, 255, 255, 0.2) 70%,
+    transparent 100%
+  );
+  animation: loader-shimmer 1.2s linear infinite;
+}
+
 button {
   border-radius: 8px;
   border: 1px solid transparent;
