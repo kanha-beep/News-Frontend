@@ -42,6 +42,7 @@ function SearchField({
 function App() {
   const [news, setNews] = useState([]);
   const [availableTags, setAvailableTags] = useState([]);
+  const [isMobileTagMenuOpen, setIsMobileTagMenuOpen] = useState(false);
   const [token, setToken] = useState(
     () => localStorage.getItem(TOKEN_STORAGE_KEY) || "",
   );
@@ -183,6 +184,7 @@ function App() {
 
     return tag.toLowerCase().includes(normalizedTagFilter);
   });
+  const normalizedSelectedTag = tagQuery.trim().toLowerCase();
 
   useEffect(() => {
     if (token) {
@@ -475,12 +477,14 @@ function App() {
     setShowTagSuggestions(false);
     setDateFilter("");
     setCurrentPage(1);
+    setIsMobileTagMenuOpen(false);
   };
 
   const applyTagQuery = (tag) => {
     setTagQuery(tag);
     setShowTagSuggestions(false);
     setCurrentPage(1);
+    setIsMobileTagMenuOpen(false);
   };
 
   if (authScreen) {
@@ -697,219 +701,297 @@ function App() {
           </div>
         </nav>
 
-        <div className="mb-6 grid grid-cols-2 gap-3 rounded-2xl bg-white p-4 shadow-sm lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_auto] lg:items-end">
-          <SearchField
-            id="tag-search"
-            label="Search by tag"
-            value={tagQuery}
-            onChange={(e) => {
-              setTagQuery(e.target.value);
-              setShowTagSuggestions(true);
-            }}
-            onFocus={() => setShowTagSuggestions(true)}
-            onBlur={() => {
-              setTimeout(() => setShowTagSuggestions(false), 150);
-            }}
-            placeholder="Type a tag like politics, crime, sports..."
+        <div className="mb-4 lg:hidden">
+          <button
+            type="button"
+            onClick={() => setIsMobileTagMenuOpen((prev) => !prev)}
+            className="flex w-full items-center justify-between rounded-2xl bg-white px-4 py-3 text-left shadow-sm"
           >
-            {showTagSuggestions && matchingTags.length > 0 ? (
-              <div className="absolute z-10 mt-2 max-h-52 w-full overflow-y-auto rounded-xl border border-sky-200 bg-sky-50 p-2 shadow-lg shadow-sky-100">
-                {matchingTags.map((tag) => (
-                  <button
-                    key={tag}
-                    type="button"
-                    onMouseDown={() => applyTagQuery(tag)}
-                    className="block w-full rounded-lg px-3 py-2 text-left text-sm font-medium text-blue-300 hover:bg-white"
-                  >
-                    #{tag}
-                  </button>
-                ))}
-              </div>
-            ) : null}
-          </SearchField>
-          <SearchField
-            id="title-search"
-            label="Search by title"
-            value={titleQuery}
-            onChange={(e) => {
-              setTitleQuery(e.target.value);
-              setCurrentPage(1);
-            }}
-            placeholder="Search headline text..."
-          />
-
-          <div className="min-w-0 lg:mt-0">
-            <label
-              htmlFor="date-search"
-              className="mb-2 block text-sm font-semibold text-slate-700"
-            >
-              Search by date
-            </label>
-            <input
-              id="date-search"
-              type="date"
-              value={dateFilter}
-              onChange={(e) => {
-                setDateFilter(e.target.value);
-                setCurrentPage(1);
-              }}
-              className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none transition focus:border-blue-500"
-            />
-          </div>
-          <div className="flex items-center mt-7">
-            <button
-              type="button"
-              onClick={clearAllFilters}
-              className="rounded-xl bg-slate-200 p-3 text-sm font-semibold text-slate-700 whitespace-nowrap lg:self-end lg:p-4"
-            >
-              Clear Filters
-            </button>
-          </div>
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-blue-600">
+                Browse Tags
+              </p>
+              <p className="mt-1 text-sm font-semibold text-slate-900">
+                {normalizedSelectedTag
+                  ? `#${normalizedSelectedTag}`
+                  : "All Tags"}
+              </p>
+            </div>
+            <span className="text-2xl font-semibold leading-none text-slate-700">
+              {isMobileTagMenuOpen ? "X" : "="}
+            </span>
+          </button>
         </div>
 
-        {loading ? (
-          <div className="flex min-h-[40vh] items-center justify-center">
-            <div className="w-full max-w-xl rounded-3xl bg-white p-8 text-left shadow-lg">
-              <p className="text-xs font-semibold uppercase tracking-[0.3em] text-blue-600">
-                Fetching News
-              </p>
-              <h2 className="mt-3 text-2xl font-bold text-slate-800">
-                {loadingProgress}%
-              </h2>
-              <p className="mt-2 text-sm text-slate-500">{loadingMessage}</p>
-              <div className="mt-6 h-3 overflow-hidden rounded-full bg-slate-200">
-                <div
-                  className="loader-bar h-full rounded-full bg-gradient-to-r from-blue-500 via-sky-500 to-cyan-400 transition-[width] duration-300 ease-out"
-                  style={{ width: `${loadingProgress}%` }}
-                />
+        <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
+          <aside
+            className={`lg:sticky lg:top-6 lg:w-64 lg:flex-shrink-0 ${
+              isMobileTagMenuOpen ? "block" : "hidden"
+            } lg:block`}
+          >
+            <div className="rounded-2xl bg-white p-4 shadow-sm">
+              <div className="mb-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.24em] text-blue-600">
+                  Browse Tags
+                </p>
+                <h2 className="mt-2 text-lg font-bold text-slate-900">
+                  Filter by category
+                </h2>
+              </div>
+
+              <div className="flex flex-col gap-2">
+                <button
+                  type="button"
+                  onClick={() => applyTagQuery("")}
+                  className={`w-full rounded-xl px-4 py-3 text-left text-sm font-semibold transition ${
+                    normalizedSelectedTag
+                      ? "bg-slate-100 text-slate-700 hover:bg-slate-200"
+                      : "bg-slate-900 text-white"
+                  }`}
+                >
+                  All Tags
+                </button>
+
+                {availableTags.map((tag) => {
+                  const isActive = normalizedSelectedTag === tag.toLowerCase();
+
+                  return (
+                    <button
+                      key={tag}
+                      type="button"
+                      onClick={() => applyTagQuery(tag)}
+                      className={`w-full rounded-xl px-4 py-3 text-left text-sm font-semibold transition ${
+                        isActive
+                          ? "bg-blue-600 text-white"
+                          : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+                      }`}
+                    >
+                      #{tag}
+                    </button>
+                  );
+                })}
               </div>
             </div>
-          </div>
-        ) : (
-          <>
-            {error ? (
-              <div className="mb-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-                {error}
-              </div>
-            ) : null}
+          </aside>
 
-            {refreshing ? (
-              <p className="mb-4 text-sm font-medium text-blue-600">
-                Updating articles...
-              </p>
-            ) : null}
-
-            {news.length === 0 ? (
-              <div className="rounded-2xl bg-white p-10 text-center shadow-sm">
-                <p className="text-lg font-semibold text-slate-700">
-                  No articles found.
-                </p>
-                <p className="mt-2 text-sm text-slate-500">
-                  Try another tag, date, month, or switch back to all news.
-                </p>
-              </div>
-            ) : (
-              <div className="grid gap-6 sm:grid-cols-1 md:grid-cols-2 xl:grid-cols-3">
-                {news.map((article) => (
-                  <article
-                    key={article._id || article.link}
-                    className="flex h-full flex-col rounded-2xl bg-white p-5 shadow-sm transition hover:-translate-y-1 hover:shadow-lg"
-                  >
-                    <div className="mb-4 flex items-start justify-between gap-3">
-                      <div className="flex flex-wrap gap-2">
-                        {(article.tags?.length
-                          ? article.tags
-                          : ["untagged"]
-                        ).map((tag) => (
-                          <button
-                            key={`${article.link}-${tag}`}
-                            type="button"
-                            onClick={() => applyTagQuery(tag)}
-                            className="rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700"
-                          >
-                            #{tag}
-                          </button>
-                        ))}
-                      </div>
-
+          <div className="min-w-0 flex-1">
+            <div className="mb-6 grid grid-cols-2 gap-3 rounded-2xl bg-white p-4 shadow-sm lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_auto] lg:items-end">
+              <SearchField
+                id="tag-search"
+                label="Search by tag"
+                value={tagQuery}
+                onChange={(e) => {
+                  setTagQuery(e.target.value);
+                  setShowTagSuggestions(true);
+                }}
+                onFocus={() => setShowTagSuggestions(true)}
+                onBlur={() => {
+                  setTimeout(() => setShowTagSuggestions(false), 150);
+                }}
+                placeholder="Type a tag like politics, crime, sports..."
+              >
+                {showTagSuggestions && matchingTags.length > 0 ? (
+                  <div className="absolute z-10 mt-2 max-h-52 w-full overflow-y-auto rounded-xl border border-sky-200 bg-sky-50 p-2 shadow-lg shadow-sky-100">
+                    {matchingTags.map((tag) => (
                       <button
+                        key={tag}
                         type="button"
-                        onClick={() => handleToggleFavorite(article)}
-                        className="rounded-full p-2 text-lg"
-                        aria-label={
-                          article.isFavorite
-                            ? "Remove favorite"
-                            : "Add favorite"
-                        }
+                        onMouseDown={() => applyTagQuery(tag)}
+                        className="block w-full rounded-lg px-3 py-2 text-left text-sm font-medium text-blue-300 hover:bg-white"
                       >
-                        {article.isFavorite ? (
-                          <FaBookmark className="text-red-500" />
-                        ) : (
-                          <FaRegBookmark className="text-slate-400 hover:text-red-500" />
-                        )}
+                        #{tag}
                       </button>
-                    </div>
+                    ))}
+                  </div>
+                ) : null}
+              </SearchField>
+              <SearchField
+                id="title-search"
+                label="Search by title"
+                value={titleQuery}
+                onChange={(e) => {
+                  setTitleQuery(e.target.value);
+                  setCurrentPage(1);
+                }}
+                placeholder="Search headline text..."
+              />
 
-                    <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
-                      {article.pubDate || "No publish date"}
-                    </p>
-
-                    <h2 className="mb-3 text-xl font-bold text-slate-900">
-                      {article.title}
-                    </h2>
-
-                    <p className="mb-5 line-clamp-4 text-sm leading-6 text-slate-600">
-                      {article.description || "No description available."}
-                    </p>
-
-                    <button
-                      type="button"
-                      onClick={() => handleReadArticle(article.link)}
-                      className="mt-auto rounded-xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white hover:bg-slate-700"
-                    >
-                      Read Article
-                    </button>
-                  </article>
-                ))}
+              <div className="min-w-0 lg:mt-0">
+                <label
+                  htmlFor="date-search"
+                  className="mb-2 block text-sm font-semibold text-slate-700"
+                >
+                  Search by date
+                </label>
+                <input
+                  id="date-search"
+                  type="date"
+                  value={dateFilter}
+                  onChange={(e) => {
+                    setDateFilter(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                  className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none transition focus:border-blue-500"
+                />
               </div>
-            )}
+              <div className="mt-7 flex items-center">
+                <button
+                  type="button"
+                  onClick={clearAllFilters}
+                  className="whitespace-nowrap rounded-xl bg-slate-200 p-3 text-sm font-semibold text-slate-700 lg:self-end lg:p-4"
+                >
+                  Clear Filters
+                </button>
+              </div>
+            </div>
 
-            {totalItems > 0 ? (
-              <div className="mt-8 flex flex-col items-center justify-between gap-4 rounded-2xl bg-white p-4 shadow-sm sm:flex-row">
-                <p className="text-sm text-slate-600">
-                  Showing {(currentPage - 1) * 10 + 1}-
-                  {Math.min(currentPage * 10, totalItems)} of {totalItems}{" "}
-                  articles
-                </p>
-                <div className="flex items-center gap-3">
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setCurrentPage((page) => Math.max(1, page - 1))
-                    }
-                    disabled={currentPage === 1}
-                    className="rounded-xl bg-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    Previous
-                  </button>
-                  <p className="text-sm font-medium text-slate-700">
-                    Page {currentPage} of {totalPages}
+            {loading ? (
+              <div className="flex min-h-[40vh] items-center justify-center">
+                <div className="w-full max-w-xl rounded-3xl bg-white p-8 text-left shadow-lg">
+                  <p className="text-xs font-semibold uppercase tracking-[0.3em] text-blue-600">
+                    Fetching News
                   </p>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setCurrentPage((page) => Math.min(totalPages, page + 1))
-                    }
-                    disabled={currentPage === totalPages}
-                    className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    Next
-                  </button>
+                  <h2 className="mt-3 text-2xl font-bold text-slate-800">
+                    {loadingProgress}%
+                  </h2>
+                  <p className="mt-2 text-sm text-slate-500">
+                    {loadingMessage}
+                  </p>
+                  <div className="mt-6 h-3 overflow-hidden rounded-full bg-slate-200">
+                    <div
+                      className="loader-bar h-full rounded-full bg-gradient-to-r from-blue-500 via-sky-500 to-cyan-400 transition-[width] duration-300 ease-out"
+                      style={{ width: `${loadingProgress}%` }}
+                    />
+                  </div>
                 </div>
               </div>
-            ) : null}
-          </>
-        )}
+            ) : (
+              <>
+                {error ? (
+                  <div className="mb-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                    {error}
+                  </div>
+                ) : null}
+
+                {refreshing ? (
+                  <p className="mb-4 text-sm font-medium text-blue-600">
+                    Updating articles...
+                  </p>
+                ) : null}
+
+                {news.length === 0 ? (
+                  <div className="rounded-2xl bg-white p-10 text-center shadow-sm">
+                    <p className="text-lg font-semibold text-slate-700">
+                      No articles found.
+                    </p>
+                    <p className="mt-2 text-sm text-slate-500">
+                      Try another tag, date, month, or switch back to all news.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="grid gap-6 sm:grid-cols-1 md:grid-cols-2 xl:grid-cols-3">
+                    {news.map((article) => (
+                      <article
+                        key={article._id || article.link}
+                        className="flex h-full flex-col rounded-2xl bg-white p-5 shadow-sm transition hover:-translate-y-1 hover:shadow-lg"
+                      >
+                        <div className="mb-4 flex items-start justify-between gap-3">
+                          <div className="flex flex-wrap gap-2">
+                            {(article.tags?.length
+                              ? article.tags
+                              : ["untagged"]
+                            ).map((tag) => (
+                              <button
+                                key={`${article.link}-${tag}`}
+                                type="button"
+                                onClick={() => applyTagQuery(tag)}
+                                className="rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700"
+                              >
+                                #{tag}
+                              </button>
+                            ))}
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={() => handleToggleFavorite(article)}
+                            className="rounded-full p-2 text-lg"
+                            aria-label={
+                              article.isFavorite
+                                ? "Remove favorite"
+                                : "Add favorite"
+                            }
+                          >
+                            {article.isFavorite ? (
+                              <FaBookmark className="text-red-500" />
+                            ) : (
+                              <FaRegBookmark className="text-slate-400 hover:text-red-500" />
+                            )}
+                          </button>
+                        </div>
+
+                        <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
+                          {article.pubDate || "No publish date"}
+                        </p>
+
+                        <h2 className="mb-3 text-xl font-bold text-slate-900">
+                          {article.title}
+                        </h2>
+
+                        <p className="mb-5 line-clamp-4 text-sm leading-6 text-slate-600">
+                          {article.description || "No description available."}
+                        </p>
+
+                        <button
+                          type="button"
+                          onClick={() => handleReadArticle(article.link)}
+                          className="mt-auto rounded-xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white hover:bg-slate-700"
+                        >
+                          Read Article
+                        </button>
+                      </article>
+                    ))}
+                  </div>
+                )}
+
+                {totalItems > 0 ? (
+                  <div className="mt-8 flex flex-col items-center justify-between gap-4 rounded-2xl bg-white p-4 shadow-sm sm:flex-row">
+                    <p className="text-sm text-slate-600">
+                      Showing {(currentPage - 1) * 10 + 1}-
+                      {Math.min(currentPage * 10, totalItems)} of {totalItems}{" "}
+                      articles
+                    </p>
+                    <div className="flex items-center gap-3">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setCurrentPage((page) => Math.max(1, page - 1))
+                        }
+                        disabled={currentPage === 1}
+                        className="rounded-xl bg-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        Previous
+                      </button>
+                      <p className="text-sm font-medium text-slate-700">
+                        Page {currentPage} of {totalPages}
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setCurrentPage((page) => Math.min(totalPages, page + 1))
+                        }
+                        disabled={currentPage === totalPages}
+                        className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        Next
+                      </button>
+                    </div>
+                  </div>
+                ) : null}
+              </>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );
