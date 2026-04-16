@@ -4,6 +4,7 @@ import { FaBookmark, FaRegBookmark } from "react-icons/fa";
 
 const API_BASE_URL = import.meta.env.VITE_API_URI;
 const TOKEN_STORAGE_KEY = "newsAuthToken";
+const BLOG_APP_URL = import.meta.env.VITE_BLOG_APP_URL || "https://blogs-frontend-omega.vercel.app";
 
 function SearchField({
   id,
@@ -452,6 +453,11 @@ function App() {
 
   const handleReadArticle = (link) => {
     window.open(link, "_blank", "noopener,noreferrer");
+  };
+
+  const handleReadBlog = (blogId) => {
+    if (!blogId) return;
+    window.open(`${BLOG_APP_URL}/${blogId}`, "_blank", "noopener,noreferrer");
   };
 
   const handleRefresh = async () => {
@@ -942,13 +948,24 @@ function App() {
                           {article.description || "No description available."}
                         </p>
 
-                        <button
-                          type="button"
-                          onClick={() => handleReadArticle(article.link)}
-                          className="mt-auto rounded-xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white hover:bg-slate-700"
-                        >
-                          Read Article
-                        </button>
+                        <div className="mt-auto flex flex-wrap gap-3">
+                          <button
+                            type="button"
+                            onClick={() => handleReadArticle(article.link)}
+                            className="flex-1 rounded-xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white hover:bg-slate-700"
+                          >
+                            Read Article
+                          </button>
+                          {article.blogId ? (
+                            <button
+                              type="button"
+                              onClick={() => handleReadBlog(article.blogId)}
+                              className="flex-1 rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white hover:bg-blue-700"
+                            >
+                              Read Blog
+                            </button>
+                          ) : null}
+                        </div>
                       </article>
                     ))}
                   </div>
@@ -998,3 +1015,4 @@ function App() {
 }
 
 export default App;
+
