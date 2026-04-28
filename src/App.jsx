@@ -460,6 +460,20 @@ function App() {
     window.open(`${BLOG_APP_URL}/${blogId}`, "_blank", "noopener,noreferrer");
   };
 
+  const handleCreateBlog = (article) => {
+    const params = new URLSearchParams({
+      title: article.title || "",
+      url: article.link || "",
+      category: (article.tags || []).join(","),
+    });
+
+    window.open(
+      `${BLOG_APP_URL}/blogsform?${params.toString()}`,
+      "_blank",
+      "noopener,noreferrer",
+    );
+  };
+
   const handleRefresh = async () => {
     setRefreshing(true);
     setError("");
@@ -948,23 +962,33 @@ function App() {
                           {article.description || "No description available."}
                         </p>
 
-                        <div className="mt-auto flex flex-wrap gap-3">
+                        <div className="mt-auto grid gap-3 sm:grid-cols-2">
                           <button
                             type="button"
                             onClick={() => handleReadArticle(article.link)}
-                            className="flex-1 rounded-xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white hover:bg-slate-700"
+                            className="rounded-xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white hover:bg-slate-700"
                           >
                             Read Article
                           </button>
-                          {article.blogId ? (
-                            <button
-                              type="button"
-                              onClick={() => handleReadBlog(article.blogId)}
-                              className="flex-1 rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white hover:bg-blue-700"
-                            >
-                              Read Blog
-                            </button>
-                          ) : null}
+                          <button
+                            type="button"
+                            onClick={() => handleReadBlog(article.blogId)}
+                            disabled={!article.blogId}
+                            className={`rounded-xl px-4 py-3 text-sm font-semibold ${
+                              article.blogId
+                                ? "bg-blue-600 text-white hover:bg-blue-700"
+                                : "cursor-not-allowed bg-slate-200 text-slate-500"
+                            }`}
+                          >
+                            {article.blogId ? "Read Blog" : "Blog Pending"}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleCreateBlog(article)}
+                            className="sm:col-span-2 rounded-xl bg-emerald-600 px-4 py-3 text-sm font-semibold text-white hover:bg-emerald-700"
+                          >
+                            Create Your Own Experience
+                          </button>
                         </div>
                       </article>
                     ))}
