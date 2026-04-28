@@ -985,7 +985,7 @@ function App() {
                           <button
                             type="button"
                             onClick={() => handleCreateBlog(article)}
-                            className="sm:col-span-2 rounded-xl bg-emerald-600 px-4 py-3 text-sm font-semibold text-white hover:bg-emerald-700"
+                            className="sm:col-span-2 rounded-xl bg-emerald-600 px-4 py-3 text-sm font-semibold text-white hover:bg-emerald-700 btn btn-sm"
                           >
                             Create Your Own Experience
                           </button>
