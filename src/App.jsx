@@ -1,10 +1,57 @@
 import { useEffect, useRef, useState } from "react";
 import axios from "axios";
-import { FaBookmark, FaRegBookmark } from "react-icons/fa";
+import { FaArrowUp, FaBookmark, FaRegBookmark } from "react-icons/fa";
 
 const API_BASE_URL = import.meta.env.VITE_API_URI;
 const TOKEN_STORAGE_KEY = "newsAuthToken";
 const BLOG_APP_URL = import.meta.env.VITE_BLOG_APP_URL || "https://blogs-frontend-omega.vercel.app";
+const NEWS_CACHE_KEY = "newsFeedCache";
+const TAGS_CACHE_KEY = "newsTagsCache";
+
+const readCachedJson = (key, fallback) => {
+  try {
+    const rawValue = localStorage.getItem(key);
+    return rawValue ? JSON.parse(rawValue) : fallback;
+  } catch {
+    return fallback;
+  }
+};
+
+const writeCachedJson = (key, value) => {
+  try {
+    localStorage.setItem(key, JSON.stringify(value));
+  } catch {
+    // Ignore local cache write failures.
+  }
+};
+
+const getNewsPayloadSignature = (payload) =>
+  JSON.stringify({
+    total: payload?.total || 0,
+    totalPages: payload?.totalPages || 1,
+    items: (payload?.items || []).map((item) => ({
+      link: item.link,
+      blogId: item.blogId || "",
+      title: item.title || "",
+      pubDate: item.pubDate || "",
+    })),
+  });
+
+const isDefaultFeedRequest = (view, tag, title, date, page) =>
+  view === "all" &&
+  !tag.trim() &&
+  !title.trim() &&
+  !date &&
+  Number(page) === 1;
+
+const getCachedNewsPayload = () =>
+  readCachedJson(NEWS_CACHE_KEY, {
+    items: [],
+    total: 0,
+    totalPages: 1,
+  });
+
+const getCachedTags = () => readCachedJson(TAGS_CACHE_KEY, []);
 
 function SearchField({
   id,
@@ -41,8 +88,8 @@ function SearchField({
 }
 
 function App() {
-  const [news, setNews] = useState([]);
-  const [availableTags, setAvailableTags] = useState([]);
+  const [news, setNews] = useState(() => getCachedNewsPayload().items || []);
+  const [availableTags, setAvailableTags] = useState(() => getCachedTags());
   const [isMobileTagMenuOpen, setIsMobileTagMenuOpen] = useState(false);
   const [token, setToken] = useState(
     () => localStorage.getItem(TOKEN_STORAGE_KEY) || "",
@@ -54,12 +101,20 @@ function App() {
   const [showTagSuggestions, setShowTagSuggestions] = useState(false);
   const [dateFilter, setDateFilter] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const [totalItems, setTotalItems] = useState(0);
-  const [totalPages, setTotalPages] = useState(1);
-  const [loading, setLoading] = useState(true);
+  const [totalItems, setTotalItems] = useState(
+    () => getCachedNewsPayload().total || 0,
+  );
+  const [totalPages, setTotalPages] = useState(
+    () => getCachedNewsPayload().totalPages || 1,
+  );
+  const [loading, setLoading] = useState(
+    () => (getCachedNewsPayload().items || []).length === 0,
+  );
   const [loadingProgress, setLoadingProgress] = useState(0);
   const [loadingMessage, setLoadingMessage] = useState("Fetching news...");
   const [refreshing, setRefreshing] = useState(false);
+  const [pendingLatestNews, setPendingLatestNews] = useState(null);
+  const [pendingLatestTags, setPendingLatestTags] = useState([]);
   const [error, setError] = useState("");
   const [toast, setToast] = useState({
     show: false,
@@ -76,6 +131,23 @@ function App() {
   const [pendingFavoriteArticle, setPendingFavoriteArticle] = useState(null);
   const loadingProgressRef = useRef(0);
   const loadingAnimationRef = useRef(null);
+  const hasBootstrappedRef = useRef(false);
+
+  const applyNewsPayload = (payload) => {
+    setNews(payload?.items || []);
+    setTotalItems(payload?.total || 0);
+    setTotalPages(payload?.totalPages || 1);
+  };
+
+  const cacheDefaultFeed = (payload, tags = availableTags) => {
+    writeCachedJson(NEWS_CACHE_KEY, {
+      items: payload?.items || [],
+      total: payload?.total || 0,
+      totalPages: payload?.totalPages || 1,
+      savedAt: new Date().toISOString(),
+    });
+    writeCachedJson(TAGS_CACHE_KEY, tags || []);
+  };
 
   const updateLoadingProgress = (value) => {
     const nextValue = Math.max(0, Math.min(100, Math.round(value)));
@@ -115,9 +187,15 @@ function App() {
       }, intervalMs);
     });
 
-  const loadTags = async () => {
+  const loadTags = async (shouldApply = true) => {
     const res = await axios.get(`${API_BASE_URL}/api/tags`);
-    setAvailableTags(res.data?.items || []);
+    const items = res.data?.items || [];
+
+    if (shouldApply) {
+      setAvailableTags(items);
+    }
+
+    return items;
   };
 
   const loadCurrentUser = async (authToken = token) => {
@@ -144,12 +222,17 @@ function App() {
     date = dateFilter,
     page = currentPage,
     authToken = token,
+    shouldApply = true,
   ) => {
     if (view === "favorites" && !authToken) {
       setNews([]);
       setTotalItems(0);
       setTotalPages(1);
-      return;
+      return {
+        items: [],
+        total: 0,
+        totalPages: 1,
+      };
     }
 
     const res = await axios.get(`${API_BASE_URL}/api/news`, {
@@ -166,10 +249,21 @@ function App() {
           }
         : {},
     });
+    const payload = {
+      items: res.data?.items || [],
+      total: res.data?.total || 0,
+      totalPages: res.data?.totalPages || 1,
+    };
 
-    setNews(res.data?.items || []);
-    setTotalItems(res.data?.total || 0);
-    setTotalPages(res.data?.totalPages || 1);
+    if (shouldApply) {
+      applyNewsPayload(payload);
+
+      if (isDefaultFeedRequest(view, tag, title, date, page)) {
+        cacheDefaultFeed(payload);
+      }
+    }
+
+    return payload;
   };
 
   const syncNews = async () => {
@@ -197,16 +291,34 @@ function App() {
 
   useEffect(() => {
     const bootstrap = async () => {
-      setLoading(true);
-      updateLoadingProgress(0);
-      setLoadingMessage("Fetching latest articles...");
+      const cachedPayload = getCachedNewsPayload();
+      const cachedTags = getCachedTags();
+      const hasCachedNews = (cachedPayload.items || []).length > 0;
+
+      setLoading(!hasCachedNews);
+      updateLoadingProgress(hasCachedNews ? 100 : 0);
+      setLoadingMessage(
+        hasCachedNews ? "Refreshing saved headlines..." : "Fetching latest articles...",
+      );
       setError("");
+      setRefreshing(hasCachedNews);
 
       try {
-        await animateLoadingProgress(18, 350);
+        if (!hasCachedNews) {
+          await animateLoadingProgress(18, 350);
+        } else {
+          if (cachedTags.length > 0) {
+            setAvailableTags(cachedTags);
+          }
+          applyNewsPayload(cachedPayload);
+        }
+
         await syncNews();
         setLoadingMessage("Checking your account...");
-        await animateLoadingProgress(44, 400);
+
+        if (!hasCachedNews) {
+          await animateLoadingProgress(44, 400);
+        }
 
         if (token) {
           try {
@@ -218,15 +330,47 @@ function App() {
         }
 
         setLoadingMessage("Loading tags and headlines...");
-        await animateLoadingProgress(72, 400);
-        await Promise.all([loadTags(), loadNews("all", "", "", 1)]);
-        setLoadingMessage("Finishing up...");
-        await animateLoadingProgress(100, 300);
+        if (!hasCachedNews) {
+          await animateLoadingProgress(72, 400);
+        }
+
+        const [nextTags, latestPayload] = await Promise.all([
+          loadTags(false),
+          loadNews("all", "", "", "", 1, token, false),
+        ]);
+
+        const hasDefaultScreenOpen = isDefaultFeedRequest(
+          activeView,
+          tagQuery,
+          titleQuery,
+          dateFilter,
+          currentPage,
+        );
+        const cachedSignature = getNewsPayloadSignature(cachedPayload);
+        const latestSignature = getNewsPayloadSignature(latestPayload);
+
+        if (hasCachedNews && hasDefaultScreenOpen && latestSignature !== cachedSignature) {
+          setPendingLatestNews(latestPayload);
+          setPendingLatestTags(nextTags);
+        } else {
+          setAvailableTags(nextTags);
+          applyNewsPayload(latestPayload);
+          cacheDefaultFeed(latestPayload, nextTags);
+          setPendingLatestNews(null);
+          setPendingLatestTags([]);
+        }
+
+        if (!hasCachedNews) {
+          setLoadingMessage("Finishing up...");
+          await animateLoadingProgress(100, 300);
+        }
       } catch (err) {
         setError(
           err?.response?.data?.message || "Unable to load news right now.",
         );
       } finally {
+        hasBootstrappedRef.current = true;
+        setRefreshing(false);
         setLoading(false);
       }
     };
@@ -243,6 +387,7 @@ function App() {
   }, []);
 
   useEffect(() => {
+    if (!hasBootstrappedRef.current) return;
     if (loading || authScreen) return;
 
     const updateNews = async () => {
@@ -256,7 +401,10 @@ function App() {
           titleQuery,
           dateFilter,
           currentPage,
+          token,
         );
+        setPendingLatestNews(null);
+        setPendingLatestTags([]);
       } catch (err) {
         if (err?.response?.status === 401) {
           setToken("");
@@ -288,6 +436,13 @@ function App() {
   useEffect(() => {
     setCurrentPage(1);
   }, [activeView, dateFilter, tagQuery, titleQuery]);
+
+  useEffect(() => {
+    if (!isDefaultFeedRequest(activeView, tagQuery, titleQuery, dateFilter, currentPage)) {
+      setPendingLatestNews(null);
+      setPendingLatestTags([]);
+    }
+  }, [activeView, tagQuery, titleQuery, dateFilter, currentPage]);
 
   useEffect(() => {
     if (!toast.show) return;
@@ -484,11 +639,23 @@ function App() {
         loadTags(),
         loadNews(activeView, tagQuery, titleQuery, dateFilter, currentPage),
       ]);
+      setPendingLatestNews(null);
+      setPendingLatestTags([]);
     } catch (err) {
       setError(err?.response?.data?.message || "Unable to refresh news.");
     } finally {
       setRefreshing(false);
     }
+  };
+
+  const handleApplyLatestNews = () => {
+    if (!pendingLatestNews) return;
+
+    applyNewsPayload(pendingLatestNews);
+    setAvailableTags(pendingLatestTags);
+    cacheDefaultFeed(pendingLatestNews, pendingLatestTags);
+    setPendingLatestNews(null);
+    setPendingLatestTags([]);
   };
 
   const clearAllFilters = () => {
@@ -718,6 +885,17 @@ function App() {
             >
               Refresh
             </button>
+            {pendingLatestNews ? (
+              <button
+                type="button"
+                onClick={handleApplyLatestNews}
+                className="rounded-full bg-emerald-600 px-3 py-2 text-sm font-semibold text-white hover:bg-emerald-700"
+                title="Show latest news"
+                aria-label="Show latest news"
+              >
+                <FaArrowUp />
+              </button>
+            ) : null}
           </div>
         </nav>
 
@@ -1039,4 +1217,3 @@ function App() {
 }
 
 export default App;
-
