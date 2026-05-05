@@ -1,12 +1,25 @@
 import { useEffect, useRef, useState } from "react";
 import axios from "axios";
-import { FaArrowUp, FaBookmark, FaRegBookmark } from "react-icons/fa";
+import {
+  FaArrowUp,
+  FaBookmark,
+  FaCommentDots,
+  FaEye,
+  FaHeart,
+  FaPencilAlt,
+  FaRegBookmark,
+  FaRegHeart,
+  FaShareAlt,
+} from "react-icons/fa";
 
 const API_BASE_URL = import.meta.env.VITE_API_URI;
 const TOKEN_STORAGE_KEY = "newsAuthToken";
-const BLOG_APP_URL = import.meta.env.VITE_BLOG_APP_URL || "https://blogs-frontend-omega.vercel.app";
+const BLOG_APP_URL =
+  import.meta.env.VITE_BLOG_APP_URL ||
+  "https://blogs-frontend-omega.vercel.app";
 const NEWS_CACHE_KEY = "newsFeedCache";
 const TAGS_CACHE_KEY = "newsTagsCache";
+const ARTICLE_SHARE_PARAM = "article";
 
 const readCachedJson = (key, fallback) => {
   try {
@@ -38,11 +51,7 @@ const getNewsPayloadSignature = (payload) =>
   });
 
 const isDefaultFeedRequest = (view, tag, title, date, page) =>
-  view === "all" &&
-  !tag.trim() &&
-  !title.trim() &&
-  !date &&
-  Number(page) === 1;
+  view === "all" && !tag.trim() && !title.trim() && !date && Number(page) === 1;
 
 const getCachedNewsPayload = () =>
   readCachedJson(NEWS_CACHE_KEY, {
@@ -52,6 +61,15 @@ const getCachedNewsPayload = () =>
   });
 
 const getCachedTags = () => readCachedJson(TAGS_CACHE_KEY, []);
+const getInitialSharedArticleLink = () => {
+  try {
+    return (
+      new URLSearchParams(window.location.search).get(ARTICLE_SHARE_PARAM) || ""
+    );
+  } catch {
+    return "";
+  }
+};
 
 function SearchField({
   id,
@@ -85,6 +103,23 @@ function SearchField({
       </div>
     </div>
   );
+}
+
+function formatCommentTime(value) {
+  if (!value) return "Just now";
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return "Just now";
+  }
+
+  return date.toLocaleString("en-IN", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
 }
 
 function App() {
@@ -129,6 +164,15 @@ function App() {
     password: "",
   });
   const [pendingFavoriteArticle, setPendingFavoriteArticle] = useState(null);
+  const [sharedArticleLink, setSharedArticleLink] = useState(() =>
+    getInitialSharedArticleLink(),
+  );
+  const [commentModalArticle, setCommentModalArticle] = useState(null);
+  const [comments, setComments] = useState([]);
+  const [commentsLoading, setCommentsLoading] = useState(false);
+  const [commentText, setCommentText] = useState("");
+  const [commentSubmitting, setCommentSubmitting] = useState(false);
+  const [commentsError, setCommentsError] = useState("");
   const loadingProgressRef = useRef(0);
   const loadingAnimationRef = useRef(null);
   const hasBootstrappedRef = useRef(false);
@@ -266,6 +310,37 @@ function App() {
     return payload;
   };
 
+  const loadSharedArticle = async (
+    link = sharedArticleLink,
+    authToken = token,
+    shouldApply = true,
+  ) => {
+    const normalizedLink = (link || "").trim();
+    if (!normalizedLink) {
+      return null;
+    }
+
+    const res = await axios.get(`${API_BASE_URL}/api/news/article`, {
+      params: { link: normalizedLink },
+      headers: authToken
+        ? {
+            Authorization: `Bearer ${authToken}`,
+          }
+        : {},
+    });
+
+    const item = res.data?.item || null;
+    if (shouldApply) {
+      applyNewsPayload({
+        items: item ? [item] : [],
+        total: item ? 1 : 0,
+        totalPages: 1,
+      });
+    }
+
+    return item;
+  };
+
   const syncNews = async () => {
     await axios.get(`${API_BASE_URL}/api/hindu`);
   };
@@ -293,12 +368,15 @@ function App() {
     const bootstrap = async () => {
       const cachedPayload = getCachedNewsPayload();
       const cachedTags = getCachedTags();
-      const hasCachedNews = (cachedPayload.items || []).length > 0;
+      const hasCachedNews =
+        !sharedArticleLink && (cachedPayload.items || []).length > 0;
 
       setLoading(!hasCachedNews);
       updateLoadingProgress(hasCachedNews ? 100 : 0);
       setLoadingMessage(
-        hasCachedNews ? "Refreshing saved headlines..." : "Fetching latest articles...",
+        hasCachedNews
+          ? "Refreshing saved headlines..."
+          : "Fetching latest articles...",
       );
       setError("");
       setRefreshing(hasCachedNews);
@@ -336,26 +414,45 @@ function App() {
 
         const [nextTags, latestPayload] = await Promise.all([
           loadTags(false),
-          loadNews("all", "", "", "", 1, token, false),
+          sharedArticleLink
+            ? loadSharedArticle(sharedArticleLink, token, false)
+            : loadNews("all", "", "", "", 1, token, false),
         ]);
 
-        const hasDefaultScreenOpen = isDefaultFeedRequest(
-          activeView,
-          tagQuery,
-          titleQuery,
-          dateFilter,
-          currentPage,
-        );
+        const hasDefaultScreenOpen =
+          !sharedArticleLink &&
+          isDefaultFeedRequest(
+            activeView,
+            tagQuery,
+            titleQuery,
+            dateFilter,
+            currentPage,
+          );
         const cachedSignature = getNewsPayloadSignature(cachedPayload);
-        const latestSignature = getNewsPayloadSignature(latestPayload);
+        const latestSignature = sharedArticleLink
+          ? JSON.stringify({ item: latestPayload?.link || "" })
+          : getNewsPayloadSignature(latestPayload);
 
-        if (hasCachedNews && hasDefaultScreenOpen && latestSignature !== cachedSignature) {
+        if (
+          !sharedArticleLink &&
+          hasCachedNews &&
+          hasDefaultScreenOpen &&
+          latestSignature !== cachedSignature
+        ) {
           setPendingLatestNews(latestPayload);
           setPendingLatestTags(nextTags);
         } else {
           setAvailableTags(nextTags);
-          applyNewsPayload(latestPayload);
-          cacheDefaultFeed(latestPayload, nextTags);
+          if (sharedArticleLink) {
+            applyNewsPayload({
+              items: latestPayload ? [latestPayload] : [],
+              total: latestPayload ? 1 : 0,
+              totalPages: 1,
+            });
+          } else {
+            applyNewsPayload(latestPayload);
+            cacheDefaultFeed(latestPayload, nextTags);
+          }
           setPendingLatestNews(null);
           setPendingLatestTags([]);
         }
@@ -403,6 +500,18 @@ function App() {
           currentPage,
           token,
         );
+        if (sharedArticleLink) {
+          const sharedItem = await loadSharedArticle(
+            sharedArticleLink,
+            token,
+            false,
+          );
+          applyNewsPayload({
+            items: sharedItem ? [sharedItem] : [],
+            total: sharedItem ? 1 : 0,
+            totalPages: 1,
+          });
+        }
         setPendingLatestNews(null);
         setPendingLatestTags([]);
       } catch (err) {
@@ -431,6 +540,7 @@ function App() {
     token,
     loading,
     authScreen,
+    sharedArticleLink,
   ]);
 
   useEffect(() => {
@@ -438,7 +548,15 @@ function App() {
   }, [activeView, dateFilter, tagQuery, titleQuery]);
 
   useEffect(() => {
-    if (!isDefaultFeedRequest(activeView, tagQuery, titleQuery, dateFilter, currentPage)) {
+    if (
+      !isDefaultFeedRequest(
+        activeView,
+        tagQuery,
+        titleQuery,
+        dateFilter,
+        currentPage,
+      )
+    ) {
       setPendingLatestNews(null);
       setPendingLatestTags([]);
     }
@@ -454,6 +572,30 @@ function App() {
     return () => clearTimeout(timeout);
   }, [toast]);
 
+  useEffect(() => {
+    if (!commentModalArticle?.link) return;
+
+    const loadComments = async () => {
+      setCommentsLoading(true);
+      setCommentsError("");
+
+      try {
+        const res = await axios.get(`${API_BASE_URL}/api/comments`, {
+          params: { link: commentModalArticle.link },
+        });
+        setComments(res.data?.items || []);
+      } catch (err) {
+        setCommentsError(
+          err?.response?.data?.message || "Unable to load comments right now.",
+        );
+      } finally {
+        setCommentsLoading(false);
+      }
+    };
+
+    loadComments();
+  }, [commentModalArticle]);
+
   const openAuthScreen = (mode) => {
     setAuthScreen(mode);
     setAuthForm({
@@ -462,6 +604,13 @@ function App() {
       password: "",
     });
     setError("");
+  };
+
+  const clearSharedArticleFocus = () => {
+    if (!sharedArticleLink) return;
+
+    setSharedArticleLink("");
+    window.history.replaceState({}, "", window.location.pathname);
   };
 
   const handleAuthSubmit = async (e) => {
@@ -595,6 +744,8 @@ function App() {
   };
 
   const handleViewChange = (view) => {
+    clearSharedArticleFocus();
+
     if (view === "favorites" && !token) {
       setActiveView("favorites");
       setCurrentPage(1);
@@ -629,6 +780,124 @@ function App() {
     );
   };
 
+  const handleCommentClick = (article) => {
+    setCommentModalArticle(article);
+    setComments([]);
+    setCommentsError("");
+    setCommentText("");
+  };
+
+  const closeCommentModal = () => {
+    setCommentModalArticle(null);
+    setComments([]);
+    setCommentsLoading(false);
+    setCommentText("");
+    setCommentSubmitting(false);
+    setCommentsError("");
+  };
+
+  const handleShareArticle = async (article) => {
+    const appUrl = new URL(window.location.href);
+    appUrl.searchParams.set(ARTICLE_SHARE_PARAM, article.link || "");
+    const shareUrl = appUrl.toString();
+    const sharePayload = {
+      title: article.title || "News article",
+      text: article.title || "Open this news in NEWZ",
+      url: shareUrl,
+    };
+
+    try {
+      if (navigator.share) {
+        await navigator.share(sharePayload);
+      } else if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(shareUrl);
+        setToast({
+          show: true,
+          message: "Article link copied",
+          type: "success",
+        });
+      } else {
+        window.open(shareUrl, "_blank", "noopener,noreferrer");
+      }
+    } catch (err) {
+      if (err?.name === "AbortError") {
+        return;
+      }
+
+      setToast({
+        show: true,
+        message: "Unable to share this article",
+        type: "info",
+      });
+    }
+  };
+
+  const handleCommentSubmit = async (e) => {
+    e.preventDefault();
+
+    if (!commentModalArticle?.link) return;
+
+    if (!token) {
+      openAuthScreen("login");
+      setToast({
+        show: true,
+        message: "Sign in to add a comment",
+        type: "info",
+      });
+      return;
+    }
+
+    const normalizedComment = commentText.trim();
+    if (!normalizedComment) {
+      setCommentsError("Comment cannot be empty.");
+      return;
+    }
+
+    setCommentSubmitting(true);
+    setCommentsError("");
+
+    try {
+      const res = await axios.post(
+        `${API_BASE_URL}/api/comments`,
+        {
+          link: commentModalArticle.link,
+          content: normalizedComment,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      );
+
+      const createdComment = res.data?.item;
+      if (createdComment) {
+        setComments((prev) => [createdComment, ...prev]);
+      }
+      setCommentText("");
+      setToast({
+        show: true,
+        message: "Comment added",
+        type: "success",
+      });
+    } catch (err) {
+      if (err?.response?.status === 401) {
+        setToken("");
+        setCurrentUser(null);
+        openAuthScreen("login");
+        return;
+      }
+
+      setCommentsError(
+        err?.response?.data?.message ||
+          err?.response?.data?.error ||
+          "Unable to add comment.",
+      );
+    } finally {
+      setCommentSubmitting(false);
+    }
+  };
+
   const handleRefresh = async () => {
     setRefreshing(true);
     setError("");
@@ -637,7 +906,9 @@ function App() {
       await syncNews();
       await Promise.all([
         loadTags(),
-        loadNews(activeView, tagQuery, titleQuery, dateFilter, currentPage),
+        sharedArticleLink
+          ? loadSharedArticle(sharedArticleLink)
+          : loadNews(activeView, tagQuery, titleQuery, dateFilter, currentPage),
       ]);
       setPendingLatestNews(null);
       setPendingLatestTags([]);
@@ -659,6 +930,7 @@ function App() {
   };
 
   const clearAllFilters = () => {
+    clearSharedArticleFocus();
     setTagQuery("");
     setTitleQuery("");
     setShowTagSuggestions(false);
@@ -668,6 +940,7 @@ function App() {
   };
 
   const applyTagQuery = (tag) => {
+    clearSharedArticleFocus();
     setTagQuery(tag);
     setShowTagSuggestions(false);
     setCurrentPage(1);
@@ -836,6 +1109,104 @@ function App() {
           </div>
         </div>
       ) : null}
+      {commentModalArticle ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 px-4 py-6">
+          <div className="flex max-h-[85vh] w-full max-w-2xl flex-col rounded-2xl bg-white shadow-xl">
+            <div className="flex items-start justify-between gap-4 border-b border-slate-200 px-5 py-4">
+              <div className="min-w-0">
+                <p className="text-xs font-semibold uppercase tracking-[0.24em] text-blue-600">
+                  Comments
+                </p>
+                <h3 className="mt-2 text-lg font-bold text-slate-900">
+                  {commentModalArticle.title}
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={closeCommentModal}
+                className="rounded-full bg-slate-100 px-3 py-2 text-sm font-semibold text-slate-700"
+              >
+                Close
+              </button>
+            </div>
+
+            <div className="flex-1 space-y-4 overflow-y-auto px-5 py-4">
+              {commentsError && !commentSubmitting ? (
+                <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                  {commentsError}
+                </div>
+              ) : null}
+
+              {commentsLoading ? (
+                <p className="text-sm font-medium text-blue-600">
+                  Loading comments...
+                </p>
+              ) : comments.length === 0 ? (
+                <div className="rounded-xl bg-slate-50 px-4 py-6 text-center">
+                  <p className="text-sm font-semibold text-slate-700">
+                    No comments yet.
+                  </p>
+                  <p className="mt-1 text-sm text-slate-500">
+                    Start the conversation on this article.
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {comments.map((comment) => (
+                    <div
+                      key={comment.id}
+                      className="rounded-xl bg-slate-50 px-4 py-3"
+                    >
+                      <div className="flex items-center justify-between gap-3">
+                        <p className="text-sm font-semibold text-slate-900">
+                          {comment.userName}
+                        </p>
+                        <p className="text-xs text-slate-500">
+                          {formatCommentTime(comment.createdAt)}
+                        </p>
+                      </div>
+                      <p className="mt-2 text-sm leading-6 text-slate-600">
+                        {comment.content}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <form
+              onSubmit={handleCommentSubmit}
+              className="border-t border-slate-200 px-5 py-4"
+            >
+              <label className="mb-2 block text-sm font-semibold text-slate-700">
+                Add your comment
+              </label>
+              <textarea
+                value={commentText}
+                onChange={(e) => setCommentText(e.target.value)}
+                rows={4}
+                maxLength={500}
+                placeholder="Write your thoughts on this news..."
+                className="w-full resize-none rounded-xl border border-slate-300 px-4 py-3 outline-none transition focus:border-blue-500"
+              />
+              <div className="mt-3 flex items-center justify-between gap-3">
+                <p className="text-xs text-slate-500">
+                  {token
+                    ? `${commentText.trim().length}/500`
+                    : "Sign in to post your comment"}
+                </p>
+                <button
+                  type="submit"
+                  disabled={commentSubmitting}
+                  className="rounded-xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {commentSubmitting ? "Posting..." : "Post Comment"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      ) : null}
       <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
         <nav className="mb-6 flex flex-col gap-4 rounded-2xl bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
           <div>
@@ -979,6 +1350,7 @@ function App() {
                 label="Search by tag"
                 value={tagQuery}
                 onChange={(e) => {
+                  clearSharedArticleFocus();
                   setTagQuery(e.target.value);
                   setShowTagSuggestions(true);
                 }}
@@ -1008,6 +1380,7 @@ function App() {
                 label="Search by title"
                 value={titleQuery}
                 onChange={(e) => {
+                  clearSharedArticleFocus();
                   setTitleQuery(e.target.value);
                   setCurrentPage(1);
                 }}
@@ -1026,6 +1399,7 @@ function App() {
                   type="date"
                   value={dateFilter}
                   onChange={(e) => {
+                    clearSharedArticleFocus();
                     setDateFilter(e.target.value);
                     setCurrentPage(1);
                   }}
@@ -1136,37 +1510,78 @@ function App() {
                           {article.title}
                         </h2>
 
-                        <p className="mb-5 line-clamp-4 text-sm leading-6 text-slate-600">
+                        <p className="line-clamp-4 text-sm leading-6 text-slate-600">
                           {article.description || "No description available."}
                         </p>
 
-                        <div className="mt-auto grid gap-3 sm:grid-cols-2">
-                          <button
-                            type="button"
-                            onClick={() => handleReadArticle(article.link)}
-                            className="rounded-xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white hover:bg-slate-700"
-                          >
-                            Read Article
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleReadBlog(article.blogId)}
-                            disabled={!article.blogId}
-                            className={`rounded-xl px-4 py-3 text-sm font-semibold ${
-                              article.blogId
-                                ? "bg-blue-600 text-white hover:bg-blue-700"
-                                : "cursor-not-allowed bg-slate-200 text-slate-500"
-                            }`}
-                          >
-                            {article.blogId ? "Read Blog" : "Blog Pending"}
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleCreateBlog(article)}
-                            className="sm:col-span-2 rounded-xl bg-emerald-600 px-4 py-3 text-sm font-semibold text-white hover:bg-emerald-700 btn btn-sm"
-                          >
-                            Create Your Own Experience
-                          </button>
+                        <div className="mt-auto pt-5">
+                          <div className="grid grid-cols-3 gap-3">
+                            <button
+                              type="button"
+                              onClick={() => handleReadArticle(article.link)}
+                              className="flex items-center justify-center rounded-xl bg-slate-900 p-1 text-sm font-semibold text-white hover:bg-slate-700"
+                              aria-label="Read article"
+                              title="Read article"
+                            >
+                              <FaEye />
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => handleCreateBlog(article)}
+                              className="flex items-center justify-center rounded-xl bg-emerald-600 p-1 text-sm font-semibold text-white hover:bg-emerald-700 btn btn-sm"
+                              aria-label="Write your own experience"
+                              title="Write your own experience"
+                            >
+                              <FaPencilAlt />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleReadBlog(article.blogId)}
+                              disabled={!article.blogId}
+                              className={`rounded-xl px-2 py-3 text-sm font-semibold truncate ${
+                                article.blogId
+                                  ? "bg-blue-600 text-white hover:bg-blue-700"
+                                  : "cursor-not-allowed bg-slate-200 text-slate-500"
+                              }`}
+                            >
+                              {article.blogId ? "Read Blog" : "Blog Pending"}
+                            </button>
+                          </div>
+                          <div className="mt-4 grid grid-cols-3 gap-3">
+                            <button
+                              type="button"
+                              onClick={() => handleToggleFavorite(article)}
+                              className={`flex items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold transition ${
+                                article.isFavorite
+                                  ? "bg-red-50 text-red-600"
+                                  : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+                              }`}
+                            >
+                              {article.isFavorite ? (
+                                <FaHeart />
+                              ) : (
+                                <FaRegHeart />
+                              )}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleCommentClick(article)}
+                              className="flex items-center justify-center gap-2 rounded-xl bg-slate-100 px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-200"
+                            >
+                              <FaCommentDots />
+                              <span>Comment</span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleShareArticle(article)}
+                              className="flex items-center justify-center gap-2 rounded-xl bg-slate-100 px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-200"
+                              aria-label="Share article"
+                              title="Share article"
+                            >
+                              <FaShareAlt />
+                            </button>
+                          </div>
                         </div>
                       </article>
                     ))}
@@ -1197,7 +1612,9 @@ function App() {
                       <button
                         type="button"
                         onClick={() =>
-                          setCurrentPage((page) => Math.min(totalPages, page + 1))
+                          setCurrentPage((page) =>
+                            Math.min(totalPages, page + 1),
+                          )
                         }
                         disabled={currentPage === totalPages}
                         className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
