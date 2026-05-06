@@ -683,11 +683,11 @@ function App() {
     if (!token) {
       setPendingFavoriteArticle(article);
       openAuthScreen("login");
-      setToast({
-        show: true,
-        message: "Sign in to save favorites",
-        type: "info",
-      });
+      // setToast({
+      //   show: true,
+      //   message: "Sign in to save favorites",
+      //   type: "info",
+      // });
       return;
     }
 
@@ -711,14 +711,23 @@ function App() {
       setCurrentUser(res.data?.user || currentUser);
       setNews((prev) =>
         prev.map((item) =>
-          item.link === article.link ? { ...item, isFavorite } : item,
+          item.link === article.link
+            ? {
+                ...item,
+                isFavorite,
+                likeCount: Math.max(
+                  0,
+                  (item.likeCount || 0) + (isFavorite ? 1 : -1),
+                ),
+              }
+            : item,
         ),
       );
-      setToast({
-        show: true,
-        message: isFavorite ? "Added to favorites" : "Removed from favorites",
-        type: isFavorite ? "success" : "info",
-      });
+      // setToast({
+      //   show: true,
+      //   message: isFavorite ? "Added to favorites" : "Removed from favorites",
+      //   type: isFavorite ? "success" : "info",
+      // });
 
       if (activeView === "favorites") {
         if (!isFavorite && news.length === 1 && currentPage > 1) {
@@ -873,6 +882,13 @@ function App() {
       const createdComment = res.data?.item;
       if (createdComment) {
         setComments((prev) => [createdComment, ...prev]);
+        setNews((prev) =>
+          prev.map((item) =>
+            item.link === commentModalArticle.link
+              ? { ...item, commentCount: (item.commentCount || 0) + 1 }
+              : item,
+          ),
+        );
       }
       setCommentText("");
       setToast({
@@ -1484,7 +1500,7 @@ function App() {
                             ))}
                           </div>
 
-                          <button
+                          {/* <button
                             type="button"
                             onClick={() => handleToggleFavorite(article)}
                             className="rounded-full p-2 text-lg"
@@ -1499,7 +1515,7 @@ function App() {
                             ) : (
                               <FaRegBookmark className="text-slate-400 hover:text-red-500" />
                             )}
-                          </button>
+                          </button> */}
                         </div>
 
                         <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
@@ -1515,11 +1531,11 @@ function App() {
                         </p>
 
                         <div className="mt-auto pt-5">
-                          <div className="grid grid-cols-3 gap-3">
+                          <div className="grid grid-cols-3 gap-1">
                             <button
                               type="button"
                               onClick={() => handleReadArticle(article.link)}
-                              className="flex items-center justify-center rounded-xl bg-slate-900 p-1 text-sm font-semibold text-white hover:bg-slate-700"
+                              className="flex items-center justify-center rounded-xl bg-slate-900 p-2 text-sm font-semibold text-white hover:bg-slate-700"
                               aria-label="Read article"
                               title="Read article"
                             >
@@ -1529,7 +1545,7 @@ function App() {
                             <button
                               type="button"
                               onClick={() => handleCreateBlog(article)}
-                              className="flex items-center justify-center rounded-xl bg-emerald-600 p-1 text-sm font-semibold text-white hover:bg-emerald-700 btn btn-sm"
+                              className="flex items-center justify-center rounded-xl bg-emerald-600 p-2 text-sm font-semibold text-white hover:bg-emerald-700 btn btn-sm"
                               aria-label="Write your own experience"
                               title="Write your own experience"
                             >
@@ -1539,7 +1555,7 @@ function App() {
                               type="button"
                               onClick={() => handleReadBlog(article.blogId)}
                               disabled={!article.blogId}
-                              className={`rounded-xl px-2 py-3 text-sm font-semibold truncate ${
+                              className={`rounded-xl px-2 py-2 text-sm font-semibold truncate ${
                                 article.blogId
                                   ? "bg-blue-600 text-white hover:bg-blue-700"
                                   : "cursor-not-allowed bg-slate-200 text-slate-500"
@@ -1558,19 +1574,22 @@ function App() {
                                   : "bg-slate-100 text-slate-700 hover:bg-slate-200"
                               }`}
                             >
-                              {article.isFavorite ? (
-                                <FaHeart />
-                              ) : (
-                                <FaRegHeart />
-                              )}
+                              <span className="text-sm font-semibold leading-none">
+                                {article.likeCount || 0}
+                              </span>
+                              {article.isFavorite ? <FaHeart /> : <FaRegHeart />}
                             </button>
                             <button
                               type="button"
                               onClick={() => handleCommentClick(article)}
-                              className="flex items-center justify-center gap-2 rounded-xl bg-slate-100 px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-200"
+                              className="flex items-center justify-center gap-1 rounded-xl bg-slate-100 px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-200"
                             >
-                              <FaCommentDots />
-                              <span>Comment</span>
+                              <span className="text-xs font-semibold leading-none">
+                                {article.commentCount || 0}
+                              </span>
+                           
+                                <FaCommentDots />
+                           
                             </button>
                             <button
                               type="button"
