@@ -690,43 +690,13 @@ function App() {
     if (!token) {
       setPendingFavoriteArticle(article);
       openAuthScreen("login");
-      // setToast({
-      //   show: true,
-      //   message: "Sign in to save favorites",
-      //   type: "info",
-      // });
+      setToast({
+        show: true,
+        message: "Sign in to save favorites",
+        type: "info",
+      });
       return;
     }
-
-    if (pendingLikeLinks[article.link]) {
-      return;
-    }
-
-    const nextFavoriteState = !article.isFavorite;
-    setPendingLikeLinks((prev) => ({ ...prev, [article.link]: true }));
-    setLikeBurstLinks((prev) => ({ ...prev, [article.link]: true }));
-    setNews((prev) =>
-      prev.map((item) =>
-        item.link === article.link
-          ? {
-              ...item,
-              isFavorite: nextFavoriteState,
-              likeCount: Math.max(
-                0,
-                (item.likeCount || 0) + (nextFavoriteState ? 1 : -1),
-              ),
-            }
-          : item,
-      ),
-    );
-
-    if (likeBurstTimeoutsRef.current[article.link]) {
-      clearTimeout(likeBurstTimeoutsRef.current[article.link]);
-    }
-    likeBurstTimeoutsRef.current[article.link] = setTimeout(() => {
-      setLikeBurstLinks((prev) => ({ ...prev, [article.link]: false }));
-      delete likeBurstTimeoutsRef.current[article.link];
-    }, 380);
 
     try {
       const res = await axios.post(
@@ -748,26 +718,9 @@ function App() {
       setCurrentUser(res.data?.user || currentUser);
       setNews((prev) =>
         prev.map((item) =>
-          item.link === article.link
-            ? {
-                ...item,
-                isFavorite,
-                likeCount:
-                  isFavorite === nextFavoriteState
-                    ? item.likeCount || 0
-                    : Math.max(
-                        0,
-                        (item.likeCount || 0) + (isFavorite ? 1 : -1),
-                      ),
-              }
-            : item,
+          item.link === article.link ? { ...item, isFavorite } : item,
         ),
       );
-      // setToast({
-      //   show: true,
-      //   message: isFavorite ? "Added to favorites" : "Removed from favorites",
-      //   type: isFavorite ? "success" : "info",
-      // });
 
       if (activeView === "favorites") {
         if (!isFavorite && news.length === 1 && currentPage > 1) {
@@ -784,13 +737,98 @@ function App() {
         );
       }
     } catch (err) {
+      setError(
+        err?.response?.data?.message ||
+          err?.response?.data?.error ||
+          "Unable to update favorite.",
+      );
+    }
+  };
+
+  const handleToggleLike = async (article) => {
+    if (!token) {
+      openAuthScreen("login");
+      setToast({
+        show: true,
+        message: "Sign in to like this article",
+        type: "info",
+      });
+      return;
+    }
+
+    if (pendingLikeLinks[article.link]) {
+      return;
+    }
+
+    const nextLikedState = !article.isLiked;
+    setPendingLikeLinks((prev) => ({ ...prev, [article.link]: true }));
+    setLikeBurstLinks((prev) => ({ ...prev, [article.link]: true }));
+    setNews((prev) =>
+      prev.map((item) =>
+        item.link === article.link
+          ? {
+              ...item,
+              isLiked: nextLikedState,
+              likeCount: Math.max(
+                0,
+                (item.likeCount || 0) + (nextLikedState ? 1 : -1),
+              ),
+            }
+          : item,
+      ),
+    );
+
+    if (likeBurstTimeoutsRef.current[article.link]) {
+      clearTimeout(likeBurstTimeoutsRef.current[article.link]);
+    }
+    likeBurstTimeoutsRef.current[article.link] = setTimeout(() => {
+      setLikeBurstLinks((prev) => ({ ...prev, [article.link]: false }));
+      delete likeBurstTimeoutsRef.current[article.link];
+    }, 380);
+
+    try {
+      const res = await axios.post(
+        `${API_BASE_URL}/api/likes/toggle`,
+        {
+          link: article.link,
+          title: article.title,
+          description: article.description,
+          pubDate: article.pubDate,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      );
+
+      const isLiked = Boolean(res.data?.liked);
+      setCurrentUser(res.data?.user || currentUser);
+      setNews((prev) =>
+        prev.map((item) =>
+          item.link === article.link
+            ? {
+                ...item,
+                isLiked,
+                likeCount:
+                  isLiked === nextLikedState
+                    ? item.likeCount || 0
+                    : Math.max(
+                        0,
+                        (item.likeCount || 0) + (isLiked ? 1 : -1),
+                      ),
+              }
+            : item,
+        ),
+      );
+    } catch (err) {
       setNews((prev) =>
         prev.map((item) =>
           item.link === article.link
             ? {
                 ...item,
                 likeCount: article.likeCount || 0,
-                isFavorite: article.isFavorite,
+                isLiked: article.isLiked,
               }
             : item,
         ),
@@ -798,7 +836,7 @@ function App() {
       setError(
         err?.response?.data?.message ||
           err?.response?.data?.error ||
-          "Unable to update favorite.",
+          "Unable to update like.",
       );
     } finally {
       setPendingLikeLinks((prev) => ({ ...prev, [article.link]: false }));
@@ -1553,7 +1591,7 @@ function App() {
                             ))}
                           </div>
 
-                          {/* <button
+                          <button
                             type="button"
                             onClick={() => handleToggleFavorite(article)}
                             className="rounded-full p-2 text-lg"
@@ -1568,7 +1606,7 @@ function App() {
                             ) : (
                               <FaRegBookmark className="text-slate-400 hover:text-red-500" />
                             )}
-                          </button> */}
+                          </button>
                         </div>
 
                         <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
@@ -1620,10 +1658,10 @@ function App() {
                           <div className="mt-4 grid grid-cols-3 gap-3">
                             <button
                               type="button"
-                              onClick={() => handleToggleFavorite(article)}
+                              onClick={() => handleToggleLike(article)}
                               disabled={Boolean(pendingLikeLinks[article.link])}
                               className={`flex items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold transition duration-300 ${
-                                article.isFavorite
+                                article.isLiked
                                   ? "bg-red-50 text-red-600"
                                   : "bg-slate-100 text-slate-700 hover:bg-slate-200"
                               } ${
@@ -1639,7 +1677,7 @@ function App() {
                               <span className="text-sm font-semibold leading-none">
                                 {article.likeCount || 0}
                               </span>
-                              {article.isFavorite ? <FaHeart /> : <FaRegHeart />}
+                              {article.isLiked ? <FaHeart /> : <FaRegHeart />}
                             </button>
                             <button
                               type="button"
