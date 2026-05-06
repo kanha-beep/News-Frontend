@@ -167,6 +167,8 @@ function App() {
   const [sharedArticleLink, setSharedArticleLink] = useState(() =>
     getInitialSharedArticleLink(),
   );
+  const [pendingLikeLinks, setPendingLikeLinks] = useState({});
+  const [likeBurstLinks, setLikeBurstLinks] = useState({});
   const [commentModalArticle, setCommentModalArticle] = useState(null);
   const [comments, setComments] = useState([]);
   const [commentsLoading, setCommentsLoading] = useState(false);
@@ -176,6 +178,7 @@ function App() {
   const loadingProgressRef = useRef(0);
   const loadingAnimationRef = useRef(null);
   const hasBootstrappedRef = useRef(false);
+  const likeBurstTimeoutsRef = useRef({});
 
   const applyNewsPayload = (payload) => {
     setNews(payload?.items || []);
@@ -480,6 +483,10 @@ function App() {
       if (loadingAnimationRef.current) {
         clearInterval(loadingAnimationRef.current);
       }
+
+      Object.values(likeBurstTimeoutsRef.current).forEach((timeoutId) => {
+        clearTimeout(timeoutId);
+      });
     };
   }, []);
 
@@ -691,6 +698,36 @@ function App() {
       return;
     }
 
+    if (pendingLikeLinks[article.link]) {
+      return;
+    }
+
+    const nextFavoriteState = !article.isFavorite;
+    setPendingLikeLinks((prev) => ({ ...prev, [article.link]: true }));
+    setLikeBurstLinks((prev) => ({ ...prev, [article.link]: true }));
+    setNews((prev) =>
+      prev.map((item) =>
+        item.link === article.link
+          ? {
+              ...item,
+              isFavorite: nextFavoriteState,
+              likeCount: Math.max(
+                0,
+                (item.likeCount || 0) + (nextFavoriteState ? 1 : -1),
+              ),
+            }
+          : item,
+      ),
+    );
+
+    if (likeBurstTimeoutsRef.current[article.link]) {
+      clearTimeout(likeBurstTimeoutsRef.current[article.link]);
+    }
+    likeBurstTimeoutsRef.current[article.link] = setTimeout(() => {
+      setLikeBurstLinks((prev) => ({ ...prev, [article.link]: false }));
+      delete likeBurstTimeoutsRef.current[article.link];
+    }, 380);
+
     try {
       const res = await axios.post(
         `${API_BASE_URL}/api/favorites/toggle`,
@@ -715,10 +752,13 @@ function App() {
             ? {
                 ...item,
                 isFavorite,
-                likeCount: Math.max(
-                  0,
-                  (item.likeCount || 0) + (isFavorite ? 1 : -1),
-                ),
+                likeCount:
+                  isFavorite === nextFavoriteState
+                    ? item.likeCount || 0
+                    : Math.max(
+                        0,
+                        (item.likeCount || 0) + (isFavorite ? 1 : -1),
+                      ),
               }
             : item,
         ),
@@ -744,11 +784,24 @@ function App() {
         );
       }
     } catch (err) {
+      setNews((prev) =>
+        prev.map((item) =>
+          item.link === article.link
+            ? {
+                ...item,
+                likeCount: article.likeCount || 0,
+                isFavorite: article.isFavorite,
+              }
+            : item,
+        ),
+      );
       setError(
         err?.response?.data?.message ||
           err?.response?.data?.error ||
           "Unable to update favorite.",
       );
+    } finally {
+      setPendingLikeLinks((prev) => ({ ...prev, [article.link]: false }));
     }
   };
 
@@ -1568,10 +1621,19 @@ function App() {
                             <button
                               type="button"
                               onClick={() => handleToggleFavorite(article)}
-                              className={`flex items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold transition ${
+                              disabled={Boolean(pendingLikeLinks[article.link])}
+                              className={`flex items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold transition duration-300 ${
                                 article.isFavorite
                                   ? "bg-red-50 text-red-600"
                                   : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+                              } ${
+                                pendingLikeLinks[article.link]
+                                  ? "cursor-not-allowed opacity-80"
+                                  : ""
+                              } ${
+                                likeBurstLinks[article.link]
+                                  ? "scale-110 shadow-lg shadow-red-100"
+                                  : "scale-100"
                               }`}
                             >
                               <span className="text-sm font-semibold leading-none">
