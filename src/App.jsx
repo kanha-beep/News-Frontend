@@ -179,6 +179,7 @@ function App() {
   const loadingAnimationRef = useRef(null);
   const hasBootstrappedRef = useRef(false);
   const likeBurstTimeoutsRef = useRef({});
+  const visitTrackedRef = useRef(false);
 
   const applyNewsPayload = (payload) => {
     setNews(payload?.items || []);
@@ -488,6 +489,27 @@ function App() {
         clearTimeout(timeoutId);
       });
     };
+  }, []);
+
+  useEffect(() => {
+    if (visitTrackedRef.current) {
+      return;
+    }
+
+    visitTrackedRef.current = true;
+
+    const payload = {
+      pageUrl: window.location.href,
+      path: `${window.location.pathname}${window.location.search}`,
+      title: document.title,
+      referrer: document.referrer || "",
+      screen: `${window.screen?.width || 0}x${window.screen?.height || 0}`,
+      timezone:
+        Intl.DateTimeFormat().resolvedOptions().timeZone || "Unknown",
+      language: navigator.language || "",
+    };
+
+    axios.post(`${API_BASE_URL}/api/analytics/visit`, payload).catch(() => {});
   }, []);
 
   useEffect(() => {
