@@ -10,6 +10,7 @@ import {
   FaRegBookmark,
   FaRegHeart,
   FaShareAlt,
+  FaSyncAlt,
 } from "react-icons/fa";
 
 const API_BASE_URL = import.meta.env.VITE_API_URI;
@@ -1367,33 +1368,13 @@ function App() {
         </div>
       ) : null}
       <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-        <nav className="mb-6 grid gap-4 rounded-2xl bg-white p-4 shadow-sm sm:grid-cols-[auto_1fr_auto] sm:items-center">
-          <div className="flex justify-start">
+        <nav className="mb-6 rounded-2xl bg-white p-4 shadow-sm">
+          <div className="flex flex-wrap items-center gap-3">
             <img
               src="/lightning-news-logo.png"
               alt="Lightning News logo"
               className="h-14 w-14 rounded-full object-cover"
             />
-          </div>
-
-          <div className="text-center">
-            <h1 className="text-3xl font-bold">N E W Z</h1>
-            <div className="flex justify-center gap-3">
-              <p className="text-sm font-medium uppercase tracking-[0.25em] text-blue-600">
-                Kanha Gupta
-              </p>
-              <a
-                href="https://wa.me/919131395725"
-                target="_blank"
-                rel="noreferrer"
-                className="text-sm text-red-600"
-              >
-                Contact
-              </a>
-            </div>
-          </div>
-
-          <div className="flex flex-wrap justify-end gap-3">
             <button
               type="button"
               onClick={() => handleViewChange("all")}
@@ -1419,9 +1400,11 @@ function App() {
             <button
               type="button"
               onClick={handleRefresh}
-              className="rounded-full bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
+              className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-600 text-sm font-semibold text-white hover:bg-blue-700"
+              aria-label="Refresh"
+              title="Refresh"
             >
-              Refresh
+              <FaSyncAlt />
             </button>
             {pendingLatestNews ? (
               <button
@@ -1434,6 +1417,19 @@ function App() {
                 <FaArrowUp />
               </button>
             ) : null}
+          </div>
+          <div className="mt-3 flex items-center gap-3">
+            <p className="text-sm font-medium uppercase tracking-[0.25em] text-blue-600">
+              Kanha Gupta
+            </p>
+            <a
+              href="https://wa.me/919131395725"
+              target="_blank"
+              rel="noreferrer"
+              className="text-sm text-red-600"
+            >
+              Contact
+            </a>
           </div>
         </nav>
 
