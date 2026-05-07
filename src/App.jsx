@@ -139,10 +139,10 @@ function App() {
   );
   const [currentUser, setCurrentUser] = useState(null);
   const [activeView, setActiveView] = useState("all");
-  const [searchMode, setSearchMode] = useState("tag");
   const [tagQuery, setTagQuery] = useState("");
   const [titleQuery, setTitleQuery] = useState("");
   const [showTagSuggestions, setShowTagSuggestions] = useState(false);
+  const [tagBrowserQuery, setTagBrowserQuery] = useState("");
   const [dateFilter, setDateFilter] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [totalItems, setTotalItems] = useState(
@@ -368,11 +368,15 @@ function App() {
     return tag.toLowerCase().includes(normalizedTagFilter);
   });
   const normalizedSelectedTag = tagQuery.trim().toLowerCase();
-  const activeSearchValue = searchMode === "tag" ? tagQuery : titleQuery;
-  const activeSearchPlaceholder =
-    searchMode === "tag"
-      ? "Type a tag like politics, crime, sports..."
-      : "Search headline text...";
+  const filteredBrowserTags = availableTags.filter((tag) => {
+    const normalizedTagFilter = tagBrowserQuery.trim().toLowerCase();
+
+    if (!normalizedTagFilter) {
+      return true;
+    }
+
+    return tag.toLowerCase().includes(normalizedTagFilter);
+  });
 
   useEffect(() => {
     if (token) {
@@ -1089,15 +1093,27 @@ function App() {
 
   const applyTagQuery = (tag) => {
     clearSharedArticleFocus();
-    setSearchMode("tag");
     setTagQuery(tag);
     setShowTagSuggestions(false);
     setCurrentPage(1);
     setIsMobileTagMenuOpen(false);
+    setTagBrowserQuery("");
   };
 
   const toggleThemeMode = () => {
     setIsDarkMode((prev) => !prev);
+  };
+
+  const openTagBrowser = () => {
+    if (window.innerWidth < 1024) {
+      setIsMobileTagMenuOpen(true);
+      return;
+    }
+
+    document.getElementById("tag-sidebar")?.scrollIntoView({
+      behavior: "smooth",
+      block: "start",
+    });
   };
 
   if (authScreen) {
@@ -1457,6 +1473,15 @@ function App() {
                 </button>
               </div>
 
+              <div className="mb-4">
+                <input
+                  value={tagBrowserQuery}
+                  onChange={(e) => setTagBrowserQuery(e.target.value)}
+                  placeholder="Search tags..."
+                  className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none transition focus:border-blue-500"
+                />
+              </div>
+
               <div className="flex flex-col gap-2">
                 <button
                   type="button"
@@ -1470,7 +1495,7 @@ function App() {
                   All Tags
                 </button>
 
-                {availableTags.map((tag) => {
+                {filteredBrowserTags.map((tag) => {
                   const isActive = normalizedSelectedTag === tag.toLowerCase();
 
                   return (
@@ -1495,6 +1520,7 @@ function App() {
 
         <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
           <aside
+            id="tag-sidebar"
             className="hidden lg:sticky lg:top-6 lg:block lg:w-64 lg:flex-shrink-0"
           >
             <div className="rounded-2xl bg-white p-4 shadow-sm">
@@ -1549,87 +1575,28 @@ function App() {
                   htmlFor="smart-search"
                   className="mb-2 block text-sm font-semibold text-slate-700"
                 >
-                  Search
+                  Search by title
                 </label>
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
-                    onClick={() => {
-                      if (window.innerWidth < 1024) {
-                        setIsMobileTagMenuOpen(true);
-                        setSearchMode("tag");
-                        setShowTagSuggestions(false);
-                        return;
-                      }
-
-                      setSearchMode("tag");
-                      setShowTagSuggestions(Boolean(tagQuery.trim()));
-                    }}
-                    className={`rounded-xl px-4 py-3 text-sm font-semibold ${
-                      searchMode === "tag"
-                        ? "bg-slate-900 text-white"
-                        : "bg-slate-200 text-slate-700"
-                    }`}
+                    onClick={openTagBrowser}
+                    className="rounded-xl bg-slate-200 px-4 py-3 text-sm font-semibold text-slate-700"
                   >
                     Tag
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setSearchMode("title");
-                      setShowTagSuggestions(false);
-                    }}
-                    className={`rounded-xl px-4 py-3 text-sm font-semibold ${
-                      searchMode === "title"
-                        ? "bg-slate-900 text-white"
-                        : "bg-slate-200 text-slate-700"
-                    }`}
-                  >
-                    Title
                   </button>
                   <div className="relative min-w-0 flex-1">
                     <input
                       id="smart-search"
-                      value={activeSearchValue}
+                      value={titleQuery}
                       onChange={(e) => {
                         clearSharedArticleFocus();
-                        if (searchMode === "tag") {
-                          setTagQuery(e.target.value);
-                          setShowTagSuggestions(true);
-                        } else {
-                          setTitleQuery(e.target.value);
-                          setCurrentPage(1);
-                        }
+                        setTitleQuery(e.target.value);
+                        setCurrentPage(1);
                       }}
-                      onFocus={() => {
-                        if (searchMode === "tag") {
-                          setShowTagSuggestions(true);
-                        }
-                      }}
-                      onBlur={() => {
-                        if (searchMode === "tag") {
-                          setTimeout(() => setShowTagSuggestions(false), 150);
-                        }
-                      }}
-                      placeholder={activeSearchPlaceholder}
+                      placeholder="Search headline text..."
                       className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none transition focus:border-blue-500"
                     />
-                    {searchMode === "tag" &&
-                    showTagSuggestions &&
-                    matchingTags.length > 0 ? (
-                      <div className="absolute z-10 mt-2 max-h-52 w-full overflow-y-auto rounded-xl border border-sky-200 bg-sky-50 p-2 shadow-lg shadow-sky-100">
-                        {matchingTags.map((tag) => (
-                          <button
-                            key={tag}
-                            type="button"
-                            onMouseDown={() => applyTagQuery(tag)}
-                            className="block w-full rounded-lg px-3 py-2 text-left text-sm font-medium text-blue-300 hover:bg-white"
-                          >
-                            #{tag}
-                          </button>
-                        ))}
-                      </div>
-                    ) : null}
                   </div>
                 </div>
               </div>
