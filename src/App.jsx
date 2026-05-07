@@ -1597,12 +1597,12 @@ function App() {
               </div>
 
               <div className="min-w-0 lg:mt-0">
-                <label
+                {/* <label
                   htmlFor="date-search"
                   className="mb-2 block text-sm font-semibold text-slate-700"
                 >
                   Search by date
-                </label>
+                </label> */}
                 <div className="flex items-center gap-2">
                   <input
                     id="date-search"
