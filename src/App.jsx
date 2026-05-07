@@ -1442,27 +1442,75 @@ function App() {
             onClick={() => setIsMobileTagMenuOpen((prev) => !prev)}
             className="flex w-full items-center justify-between rounded-2xl bg-white px-4 py-3 text-left shadow-sm"
           >
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-blue-600">
-                Browse Tags
-              </p>
-              <p className="mt-1 text-sm font-semibold text-slate-900">
-                {normalizedSelectedTag
-                  ? `#${normalizedSelectedTag}`
-                  : "All Tags"}
-              </p>
-            </div>
+            <p className="text-sm font-semibold uppercase tracking-[0.24em] text-blue-600">
+              Browse Tags
+            </p>
             <span className="text-2xl font-semibold leading-none text-slate-700">
               {isMobileTagMenuOpen ? "X" : "="}
             </span>
           </button>
         </div>
 
+        {isMobileTagMenuOpen ? (
+          <div className="fixed inset-0 z-40 flex items-center justify-center bg-slate-900/50 px-4 lg:hidden">
+            <div className="max-h-[80vh] w-full max-w-sm overflow-y-auto rounded-2xl bg-white p-4 shadow-xl">
+              <div className="mb-4 flex items-start justify-between gap-4">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.24em] text-blue-600">
+                    Browse Tags
+                  </p>
+                  <h2 className="mt-2 text-lg font-bold text-slate-900">
+                    Filter by category
+                  </h2>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsMobileTagMenuOpen(false)}
+                  className="rounded-full bg-slate-200 px-3 py-2 text-sm font-semibold text-slate-700"
+                >
+                  Close
+                </button>
+              </div>
+
+              <div className="flex flex-col gap-2">
+                <button
+                  type="button"
+                  onClick={() => applyTagQuery("")}
+                  className={`w-full rounded-xl px-4 py-3 text-left text-sm font-semibold transition ${
+                    normalizedSelectedTag
+                      ? "bg-slate-100 text-slate-700 hover:bg-slate-200"
+                      : "bg-slate-900 text-white"
+                  }`}
+                >
+                  All Tags
+                </button>
+
+                {availableTags.map((tag) => {
+                  const isActive = normalizedSelectedTag === tag.toLowerCase();
+
+                  return (
+                    <button
+                      key={`mobile-${tag}`}
+                      type="button"
+                      onClick={() => applyTagQuery(tag)}
+                      className={`w-full rounded-xl px-4 py-3 text-left text-sm font-semibold transition ${
+                        isActive
+                          ? "bg-blue-600 text-white"
+                          : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+                      }`}
+                    >
+                      #{tag}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        ) : null}
+
         <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
           <aside
-            className={`lg:sticky lg:top-6 lg:w-64 lg:flex-shrink-0 ${
-              isMobileTagMenuOpen ? "block" : "hidden"
-            } lg:block`}
+            className="hidden lg:sticky lg:top-6 lg:block lg:w-64 lg:flex-shrink-0"
           >
             <div className="rounded-2xl bg-white p-4 shadow-sm">
               <div className="mb-4">
