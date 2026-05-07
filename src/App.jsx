@@ -1436,21 +1436,6 @@ function App() {
           </div>
         </nav>
 
-        <div className="mb-4 lg:hidden">
-          <button
-            type="button"
-            onClick={() => setIsMobileTagMenuOpen((prev) => !prev)}
-            className="flex w-full items-center justify-between rounded-2xl bg-white px-4 py-3 text-left shadow-sm"
-          >
-            <p className="text-sm font-semibold uppercase tracking-[0.24em] text-blue-600">
-              Browse Tags
-            </p>
-            <span className="text-2xl font-semibold leading-none text-slate-700">
-              {isMobileTagMenuOpen ? "X" : "="}
-            </span>
-          </button>
-        </div>
-
         {isMobileTagMenuOpen ? (
           <div className="fixed inset-0 z-40 flex items-center justify-center bg-slate-900/50 px-4 lg:hidden">
             <div className="max-h-[80vh] w-full max-w-sm overflow-y-auto rounded-2xl bg-white p-4 shadow-xl">
@@ -1570,6 +1555,13 @@ function App() {
                   <button
                     type="button"
                     onClick={() => {
+                      if (window.innerWidth < 1024) {
+                        setIsMobileTagMenuOpen(true);
+                        setSearchMode("tag");
+                        setShowTagSuggestions(false);
+                        return;
+                      }
+
                       setSearchMode("tag");
                       setShowTagSuggestions(Boolean(tagQuery.trim()));
                     }}
