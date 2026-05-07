@@ -17,6 +17,7 @@ const TOKEN_STORAGE_KEY = "newsAuthToken";
 const BLOG_APP_URL =
   import.meta.env.VITE_BLOG_APP_URL ||
   "https://blogs-frontend-omega.vercel.app";
+const THEME_STORAGE_KEY = "newsThemeMode";
 const NEWS_CACHE_KEY = "newsFeedCache";
 const TAGS_CACHE_KEY = "newsTagsCache";
 const ARTICLE_SHARE_PARAM = "article";
@@ -129,8 +130,12 @@ function App() {
   const [token, setToken] = useState(
     () => localStorage.getItem(TOKEN_STORAGE_KEY) || "",
   );
+  const [isDarkMode, setIsDarkMode] = useState(
+    () => localStorage.getItem(THEME_STORAGE_KEY) === "dark",
+  );
   const [currentUser, setCurrentUser] = useState(null);
   const [activeView, setActiveView] = useState("all");
+  const [searchMode, setSearchMode] = useState("tag");
   const [tagQuery, setTagQuery] = useState("");
   const [titleQuery, setTitleQuery] = useState("");
   const [showTagSuggestions, setShowTagSuggestions] = useState(false);
@@ -359,6 +364,11 @@ function App() {
     return tag.toLowerCase().includes(normalizedTagFilter);
   });
   const normalizedSelectedTag = tagQuery.trim().toLowerCase();
+  const activeSearchValue = searchMode === "tag" ? tagQuery : titleQuery;
+  const activeSearchPlaceholder =
+    searchMode === "tag"
+      ? "Type a tag like politics, crime, sports..."
+      : "Search headline text...";
 
   useEffect(() => {
     if (token) {
@@ -367,6 +377,11 @@ function App() {
       localStorage.removeItem(TOKEN_STORAGE_KEY);
     }
   }, [token]);
+
+  useEffect(() => {
+    localStorage.setItem(THEME_STORAGE_KEY, isDarkMode ? "dark" : "light");
+    document.body.classList.toggle("dark-mode", isDarkMode);
+  }, [isDarkMode]);
 
   useEffect(() => {
     const bootstrap = async () => {
@@ -1070,20 +1085,33 @@ function App() {
 
   const applyTagQuery = (tag) => {
     clearSharedArticleFocus();
+    setSearchMode("tag");
     setTagQuery(tag);
     setShowTagSuggestions(false);
     setCurrentPage(1);
     setIsMobileTagMenuOpen(false);
   };
 
+  const toggleThemeMode = () => {
+    setIsDarkMode((prev) => !prev);
+  };
+
   if (authScreen) {
     return (
       <div className="min-h-screen bg-slate-100 px-4 py-6 text-slate-900 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-7xl">
-          <nav className="mb-6 flex flex-col gap-4 rounded-2xl bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
-            <div>
+          <nav className="mb-6 grid gap-4 rounded-2xl bg-white p-4 shadow-sm sm:grid-cols-[auto_1fr_auto] sm:items-center">
+            <div className="flex justify-start">
+              <img
+                src="/lightning-news-logo.png"
+                alt="Lightning News logo"
+                className="h-14 w-14 rounded-full object-cover"
+              />
+            </div>
+
+            <div className="text-center">
               <h1 className="text-3xl font-bold">N E W Z</h1>
-              <div className="flex gap-3">
+              <div className="flex justify-center gap-3">
                 <p className="text-sm font-medium uppercase tracking-[0.25em] text-blue-600">
                   Kanha Gupta
                 </p>
@@ -1098,19 +1126,21 @@ function App() {
               </div>
             </div>
 
-            <button
-              type="button"
-              onClick={() => {
-                setAuthScreen(null);
-                setPendingFavoriteArticle(null);
-                if (!token) {
-                  setActiveView("all");
-                }
-              }}
-              className="rounded-full bg-slate-200 px-4 py-2 text-sm font-semibold text-slate-700"
-            >
-              Back to News
-            </button>
+            <div className="flex justify-end">
+              <button
+                type="button"
+                onClick={() => {
+                  setAuthScreen(null);
+                  setPendingFavoriteArticle(null);
+                  if (!token) {
+                    setActiveView("all");
+                  }
+                }}
+                className="rounded-full bg-slate-200 px-4 py-2 text-sm font-semibold text-slate-700"
+              >
+                Back to News
+              </button>
+            </div>
           </nav>
 
           <div className="mx-auto max-w-md rounded-2xl bg-white p-6 shadow-sm">
@@ -1337,10 +1367,18 @@ function App() {
         </div>
       ) : null}
       <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-        <nav className="mb-6 flex flex-col gap-4 rounded-2xl bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
-          <div>
+        <nav className="mb-6 grid gap-4 rounded-2xl bg-white p-4 shadow-sm sm:grid-cols-[auto_1fr_auto] sm:items-center">
+          <div className="flex justify-start">
+            <img
+              src="/lightning-news-logo.png"
+              alt="Lightning News logo"
+              className="h-14 w-14 rounded-full object-cover"
+            />
+          </div>
+
+          <div className="text-center">
             <h1 className="text-3xl font-bold">N E W Z</h1>
-            <div className="flex gap-3">
+            <div className="flex justify-center gap-3">
               <p className="text-sm font-medium uppercase tracking-[0.25em] text-blue-600">
                 Kanha Gupta
               </p>
@@ -1355,7 +1393,7 @@ function App() {
             </div>
           </div>
 
-          <div className="flex flex-wrap gap-3">
+          <div className="flex flex-wrap justify-end gap-3">
             <button
               type="button"
               onClick={() => handleViewChange("all")}
@@ -1473,48 +1511,89 @@ function App() {
           </aside>
 
           <div className="min-w-0 flex-1">
-            <div className="mb-6 grid grid-cols-2 gap-3 rounded-2xl bg-white p-4 shadow-sm lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_auto] lg:items-end">
-              <SearchField
-                id="tag-search"
-                label="Search by tag"
-                value={tagQuery}
-                onChange={(e) => {
-                  clearSharedArticleFocus();
-                  setTagQuery(e.target.value);
-                  setShowTagSuggestions(true);
-                }}
-                onFocus={() => setShowTagSuggestions(true)}
-                onBlur={() => {
-                  setTimeout(() => setShowTagSuggestions(false), 150);
-                }}
-                placeholder="Type a tag like politics, crime, sports..."
-              >
-                {showTagSuggestions && matchingTags.length > 0 ? (
-                  <div className="absolute z-10 mt-2 max-h-52 w-full overflow-y-auto rounded-xl border border-sky-200 bg-sky-50 p-2 shadow-lg shadow-sky-100">
-                    {matchingTags.map((tag) => (
-                      <button
-                        key={tag}
-                        type="button"
-                        onMouseDown={() => applyTagQuery(tag)}
-                        className="block w-full rounded-lg px-3 py-2 text-left text-sm font-medium text-blue-300 hover:bg-white"
-                      >
-                        #{tag}
-                      </button>
-                    ))}
+            <div className="mb-6 grid grid-cols-1 gap-3 rounded-2xl bg-white p-4 shadow-sm lg:grid-cols-[auto_minmax(0,1fr)_auto] lg:items-end">
+              <div className="max-w-xl">
+                <label
+                  htmlFor="smart-search"
+                  className="mb-2 block text-sm font-semibold text-slate-700"
+                >
+                  Search
+                </label>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSearchMode("tag");
+                      setShowTagSuggestions(Boolean(tagQuery.trim()));
+                    }}
+                    className={`rounded-xl px-4 py-3 text-sm font-semibold ${
+                      searchMode === "tag"
+                        ? "bg-slate-900 text-white"
+                        : "bg-slate-200 text-slate-700"
+                    }`}
+                  >
+                    Tag
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSearchMode("title");
+                      setShowTagSuggestions(false);
+                    }}
+                    className={`rounded-xl px-4 py-3 text-sm font-semibold ${
+                      searchMode === "title"
+                        ? "bg-slate-900 text-white"
+                        : "bg-slate-200 text-slate-700"
+                    }`}
+                  >
+                    Title
+                  </button>
+                  <div className="relative min-w-0 flex-1">
+                    <input
+                      id="smart-search"
+                      value={activeSearchValue}
+                      onChange={(e) => {
+                        clearSharedArticleFocus();
+                        if (searchMode === "tag") {
+                          setTagQuery(e.target.value);
+                          setShowTagSuggestions(true);
+                        } else {
+                          setTitleQuery(e.target.value);
+                          setCurrentPage(1);
+                        }
+                      }}
+                      onFocus={() => {
+                        if (searchMode === "tag") {
+                          setShowTagSuggestions(true);
+                        }
+                      }}
+                      onBlur={() => {
+                        if (searchMode === "tag") {
+                          setTimeout(() => setShowTagSuggestions(false), 150);
+                        }
+                      }}
+                      placeholder={activeSearchPlaceholder}
+                      className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none transition focus:border-blue-500"
+                    />
+                    {searchMode === "tag" &&
+                    showTagSuggestions &&
+                    matchingTags.length > 0 ? (
+                      <div className="absolute z-10 mt-2 max-h-52 w-full overflow-y-auto rounded-xl border border-sky-200 bg-sky-50 p-2 shadow-lg shadow-sky-100">
+                        {matchingTags.map((tag) => (
+                          <button
+                            key={tag}
+                            type="button"
+                            onMouseDown={() => applyTagQuery(tag)}
+                            className="block w-full rounded-lg px-3 py-2 text-left text-sm font-medium text-blue-300 hover:bg-white"
+                          >
+                            #{tag}
+                          </button>
+                        ))}
+                      </div>
+                    ) : null}
                   </div>
-                ) : null}
-              </SearchField>
-              <SearchField
-                id="title-search"
-                label="Search by title"
-                value={titleQuery}
-                onChange={(e) => {
-                  clearSharedArticleFocus();
-                  setTitleQuery(e.target.value);
-                  setCurrentPage(1);
-                }}
-                placeholder="Search headline text..."
-              />
+                </div>
+              </div>
 
               <div className="min-w-0 lg:mt-0">
                 <label
@@ -1536,13 +1615,22 @@ function App() {
                 />
               </div>
               <div className="mt-7 flex items-center">
-                <button
-                  type="button"
-                  onClick={clearAllFilters}
-                  className="whitespace-nowrap rounded-xl bg-slate-200 p-3 text-sm font-semibold text-slate-700 lg:self-end lg:p-4"
-                >
-                  Clear Filters
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={clearAllFilters}
+                    className="whitespace-nowrap rounded-xl bg-slate-200 p-3 text-sm font-semibold text-slate-700 lg:self-end lg:p-4"
+                  >
+                    Clear Filters
+                  </button>
+                  <button
+                    type="button"
+                    onClick={toggleThemeMode}
+                    className="whitespace-nowrap rounded-xl bg-slate-200 p-3 text-sm font-semibold text-slate-700 lg:self-end lg:p-4"
+                  >
+                    {isDarkMode ? "Light" : "Dark"}
+                  </button>
+                </div>
               </div>
             </div>
 

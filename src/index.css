@@ -31,8 +31,17 @@ body {
   background-color: #f1f5f9;
 }
 
+body.dark-mode {
+  background-color: #020617;
+  color: #e2e8f0;
+}
+
 #root {
   min-height: 100vh;
+}
+
+body.dark-mode #root {
+  background-color: #020617;
 }
 
 @keyframes loader-shimmer {
@@ -82,4 +91,90 @@ button:hover {
 button:focus,
 button:focus-visible {
   outline: 4px auto -webkit-focus-ring-color;
+}
+
+body.dark-mode .bg-slate-100 {
+  background-color: #020617 !important;
+}
+
+body.dark-mode .bg-white {
+  background-color: #0f172a !important;
+}
+
+body.dark-mode .bg-slate-50 {
+  background-color: #111827 !important;
+}
+
+body.dark-mode .bg-slate-200 {
+  background-color: #1e293b !important;
+}
+
+body.dark-mode .bg-blue-50,
+body.dark-mode .bg-sky-50,
+body.dark-mode .bg-red-50 {
+  background-color: #111827 !important;
+}
+
+body.dark-mode .bg-slate-900 {
+  background-color: #e2e8f0 !important;
+}
+
+body.dark-mode .text-slate-900 {
+  color: #e2e8f0 !important;
+}
+
+body.dark-mode .text-slate-700 {
+  color: #cbd5e1 !important;
+}
+
+body.dark-mode .text-slate-600 {
+  color: #94a3b8 !important;
+}
+
+body.dark-mode .text-slate-500,
+body.dark-mode .text-slate-400 {
+  color: #64748b !important;
+}
+
+body.dark-mode .text-slate-800 {
+  color: #dbeafe !important;
+}
+
+body.dark-mode .text-blue-300,
+body.dark-mode .text-blue-600,
+body.dark-mode .text-blue-700 {
+  color: #93c5fd !important;
+}
+
+body.dark-mode .text-red-500,
+body.dark-mode .text-red-600,
+body.dark-mode .text-red-700 {
+  color: #fca5a5 !important;
+}
+
+body.dark-mode .border-slate-300,
+body.dark-mode .border-slate-200 {
+  border-color: #334155 !important;
+}
+
+body.dark-mode .border-red-200,
+body.dark-mode .border-sky-200 {
+  border-color: #334155 !important;
+}
+
+body.dark-mode input,
+body.dark-mode textarea {
+  background-color: #0f172a !important;
+  color: #e2e8f0 !important;
+  border-color: #334155 !important;
+}
+
+body.dark-mode .hover\:bg-white:hover {
+  background-color: #1e293b !important;
+}
+
+body.dark-mode .shadow-sm,
+body.dark-mode .shadow-lg,
+body.dark-mode .shadow-xl {
+  box-shadow: 0 16px 40px rgba(2, 6, 23, 0.45) !important;
 }
