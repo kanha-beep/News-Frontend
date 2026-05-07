@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://news-frontend-plum.vercel.app/sitemap.xml
+Sitemap: https://lightningnews.vercel.app/sitemap.xml

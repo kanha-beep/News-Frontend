@@ -20,7 +20,7 @@ const API_BASE_URL = import.meta.env.VITE_API_URI;
 const TOKEN_STORAGE_KEY = "newsAuthToken";
 const BLOG_APP_URL =
   import.meta.env.VITE_BLOG_APP_URL ||
-  "https://blogs-frontend-omega.vercel.app";
+  "https://lightningnews.vercel.app";
 const THEME_STORAGE_KEY = "newsThemeMode";
 const NEWS_CACHE_KEY = "newsFeedCache";
 const TAGS_CACHE_KEY = "newsTagsCache";
