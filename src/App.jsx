@@ -6,11 +6,14 @@ import {
   FaCommentDots,
   FaEye,
   FaHeart,
+  FaMoon,
   FaPencilAlt,
   FaRegBookmark,
   FaRegHeart,
   FaShareAlt,
+  FaSun,
   FaSyncAlt,
+  FaTimes,
 } from "react-icons/fa";
 
 const API_BASE_URL = import.meta.env.VITE_API_URI;
@@ -1598,33 +1601,35 @@ function App() {
                 >
                   Search by date
                 </label>
-                <input
-                  id="date-search"
-                  type="date"
-                  value={dateFilter}
-                  onChange={(e) => {
-                    clearSharedArticleFocus();
-                    setDateFilter(e.target.value);
-                    setCurrentPage(1);
-                  }}
-                  className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none transition focus:border-blue-500"
-                />
-              </div>
-              <div className="mt-7 flex items-center">
                 <div className="flex items-center gap-2">
+                  <input
+                    id="date-search"
+                    type="date"
+                    value={dateFilter}
+                    onChange={(e) => {
+                      clearSharedArticleFocus();
+                      setDateFilter(e.target.value);
+                      setCurrentPage(1);
+                    }}
+                    className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none transition focus:border-blue-500"
+                  />
                   <button
                     type="button"
                     onClick={clearAllFilters}
-                    className="whitespace-nowrap rounded-xl bg-slate-200 p-3 text-sm font-semibold text-slate-700 lg:self-end lg:p-4"
+                    className="flex h-12 w-12 items-center justify-center rounded-xl bg-slate-200 text-sm font-semibold text-slate-700"
+                    aria-label="Clear filters"
+                    title="Clear filters"
                   >
-                    Clear Filters
+                    <FaTimes />
                   </button>
                   <button
                     type="button"
                     onClick={toggleThemeMode}
-                    className="whitespace-nowrap rounded-xl bg-slate-200 p-3 text-sm font-semibold text-slate-700 lg:self-end lg:p-4"
+                    className="flex h-12 w-12 items-center justify-center rounded-xl bg-slate-200 text-sm font-semibold text-slate-700"
+                    aria-label={isDarkMode ? "Light mode" : "Dark mode"}
+                    title={isDarkMode ? "Light mode" : "Dark mode"}
                   >
-                    {isDarkMode ? "Light" : "Dark"}
+                    {isDarkMode ? <FaSun /> : <FaMoon />}
                   </button>
                 </div>
               </div>
