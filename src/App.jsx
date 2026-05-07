@@ -1571,12 +1571,7 @@ function App() {
           <div className="min-w-0 flex-1">
             <div className="mb-6 grid grid-cols-1 gap-3 rounded-2xl bg-white p-4 shadow-sm lg:grid-cols-[auto_minmax(0,1fr)_auto] lg:items-end">
               <div className="max-w-xl">
-                <label
-                  htmlFor="smart-search"
-                  className="mb-2 block text-sm font-semibold text-slate-700"
-                >
-                  Search by title
-                </label>
+                
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
