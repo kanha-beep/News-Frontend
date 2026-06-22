@@ -1993,38 +1993,38 @@ function App() {
                 <FaArrowUp />
               </button>
             ) : null}
-          </div>
-          <div className="mt-3 flex flex-wrap items-center gap-3">
-            <p className="text-sm font-medium uppercase tracking-[0.25em] text-blue-600">
+            <div className="mt-3 flex flex-wrap items-center gap-3">
+              {/* <p className="text-sm font-medium uppercase tracking-[0.25em] text-blue-600">
               Kanha Gupta
-            </p>
-            <p className="rounded-full bg-slate-200 px-4 py-2 text-sm font-semibold text-slate-700">
-              Articles: {totalItems}
-            </p>
-            <a
-              href="https://wa.me/919131395725"
-              target="_blank"
-              rel="noreferrer"
-              className="text-sm text-red-600"
-            >
-              Contact
-            </a>
-            <button
-              type="button"
-              onClick={() => {
-                if (token) {
-                  setToken("");
-                  setCurrentUser(null);
-                  setActiveView("all");
-                  setAlerts([]);
-                } else {
-                  openAuthScreen("login");
-                }
-              }}
-              className="rounded-full bg-slate-200 px-4 py-2 text-sm font-semibold text-slate-700"
-            >
-              {token ? "Sign Out" : "Sign In"}
-            </button>
+            </p> */}
+              <p className="rounded-full bg-slate-200 px-4 py-2 text-sm font-semibold text-slate-700">
+                Articles: {totalItems}
+              </p>
+              <a
+                href="https://wa.me/919131395725"
+                target="_blank"
+                rel="noreferrer"
+                className="text-sm text-red-600"
+              >
+                Contact
+              </a>
+              <button
+                type="button"
+                onClick={() => {
+                  if (token) {
+                    setToken("");
+                    setCurrentUser(null);
+                    setActiveView("all");
+                    setAlerts([]);
+                  } else {
+                    openAuthScreen("login");
+                  }
+                }}
+                className="rounded-full bg-slate-200 px-4 py-2 text-sm font-semibold text-slate-700"
+              >
+                {token ? "Sign Out" : "Sign In"}
+              </button>
+            </div>
           </div>
         </nav>
         <BottomNavbar
