@@ -1,30 +1,88 @@
 import { useEffect, useRef, useState } from "react";
 import axios from "axios";
+import BottomNavbar from "./components/BottomNavbar.jsx";
 import {
   FaArrowUp,
   FaBookmark,
   FaCommentDots,
   FaEye,
+  FaFilter,
   FaHeart,
+  FaMinus,
   FaMoon,
+  FaNewspaper,
+  FaPlus,
   FaPencilAlt,
+  FaRegBell,
   FaRegBookmark,
   FaRegHeart,
+  FaSearch,
   FaShareAlt,
   FaSun,
   FaSyncAlt,
   FaTimes,
 } from "react-icons/fa";
+import TopNavbar from "./components/TopNavbar.jsx";
 
 const API_BASE_URL = import.meta.env.VITE_API_URI;
 const TOKEN_STORAGE_KEY = "newsAuthToken";
 const BLOG_APP_URL =
   import.meta.env.VITE_BLOG_APP_URL ||
   "https://blogs-frontend-omega.vercel.app";
+const BLOG_SYNC_API_URL = `${BLOG_APP_URL}/api/auth/sync-login`;
 const THEME_STORAGE_KEY = "newsThemeMode";
 const NEWS_CACHE_KEY = "newsFeedCache";
 const TAGS_CACHE_KEY = "newsTagsCache";
 const ARTICLE_SHARE_PARAM = "article";
+const VIEW_QUERY_PARAM = "view";
+const SUPPORTED_VIEWS = new Set(["all", "favorites", "alerts"]);
+
+const getSearchParams = () => {
+  try {
+    return new URLSearchParams(window.location.search);
+  } catch {
+    return new URLSearchParams();
+  }
+};
+
+const updateUrlParams = ({ article, view } = {}) => {
+  const params = getSearchParams();
+
+  if (article === null) {
+    params.delete(ARTICLE_SHARE_PARAM);
+  } else if (typeof article === "string") {
+    if (article.trim()) {
+      params.set(ARTICLE_SHARE_PARAM, article.trim());
+    } else {
+      params.delete(ARTICLE_SHARE_PARAM);
+    }
+  }
+
+  if (view === null) {
+    params.delete(VIEW_QUERY_PARAM);
+  } else if (typeof view === "string") {
+    if (view.trim() && view !== "all") {
+      params.set(VIEW_QUERY_PARAM, view);
+    } else {
+      params.delete(VIEW_QUERY_PARAM);
+    }
+  }
+
+  const search = params.toString();
+  const nextUrl = `${window.location.pathname}${search ? `?${search}` : ""}`;
+  window.history.replaceState({}, "", nextUrl);
+};
+
+const getInitialViewFromUrl = () => {
+  const view = getSearchParams().get(VIEW_QUERY_PARAM) || "";
+  return SUPPORTED_VIEWS.has(view) ? view : "all";
+};
+
+const parseSelectedTags = (value = "") =>
+  value
+    .split(",")
+    .map((item) => item.trim().toLowerCase())
+    .filter(Boolean);
 
 const readCachedJson = (key, fallback) => {
   try {
@@ -55,8 +113,8 @@ const getNewsPayloadSignature = (payload) =>
     })),
   });
 
-const isDefaultFeedRequest = (view, tag, title, date, page) =>
-  view === "all" && !tag.trim() && !title.trim() && !date && Number(page) === 1;
+const isDefaultFeedRequest = (view, tag, title, date) =>
+  view === "all" && !tag.trim() && !title.trim() && !date;
 
 const getCachedNewsPayload = () =>
   readCachedJson(NEWS_CACHE_KEY, {
@@ -68,12 +126,24 @@ const getCachedNewsPayload = () =>
 const getCachedTags = () => readCachedJson(TAGS_CACHE_KEY, []);
 const getInitialSharedArticleLink = () => {
   try {
-    return (
-      new URLSearchParams(window.location.search).get(ARTICLE_SHARE_PARAM) || ""
-    );
+    return getSearchParams().get(ARTICLE_SHARE_PARAM) || "";
   } catch {
     return "";
   }
+};
+
+const urlBase64ToUint8Array = (value) => {
+  const base64 = value.replace(/-/g, "+").replace(/_/g, "/");
+  const padding = "=".repeat((4 - (base64.length % 4)) % 4);
+  const normalized = `${base64}${padding}`;
+  const rawData = window.atob(normalized);
+  const outputArray = new Uint8Array(rawData.length);
+
+  for (let index = 0; index < rawData.length; index += 1) {
+    outputArray[index] = rawData.charCodeAt(index);
+  }
+
+  return outputArray;
 };
 
 function SearchField({
@@ -110,6 +180,43 @@ function SearchField({
   );
 }
 
+const mountBlogSessionBridge = (blogToken) => {
+  if (!blogToken || typeof document === "undefined") return;
+
+  const iframe = document.createElement("iframe");
+  iframe.src = `${BLOG_APP_URL}/auth#newsBridgeToken=${encodeURIComponent(blogToken)}`;
+  iframe.style.display = "none";
+  iframe.setAttribute("aria-hidden", "true");
+  document.body.appendChild(iframe);
+
+  window.setTimeout(() => {
+    iframe.remove();
+  }, 4000);
+};
+
+const syncBlogSession = async ({ name, email, password }) => {
+  if (!email || !password) return { synced: false };
+
+  try {
+    const res = await axios.post(BLOG_SYNC_API_URL, { name, email, password });
+    const blogToken = res.data?.token || "";
+
+    if (blogToken) {
+      mountBlogSessionBridge(blogToken);
+      return { synced: true };
+    }
+
+    return { synced: false };
+  } catch (error) {
+    return {
+      synced: false,
+      message:
+        error?.response?.data?.message ||
+        "News login worked, but the blog session could not be prepared.",
+    };
+  }
+};
+
 function formatCommentTime(value) {
   if (!value) return "Just now";
 
@@ -131,6 +238,7 @@ function App() {
   const [news, setNews] = useState(() => getCachedNewsPayload().items || []);
   const [availableTags, setAvailableTags] = useState(() => getCachedTags());
   const [isMobileTagMenuOpen, setIsMobileTagMenuOpen] = useState(false);
+  const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
   const [token, setToken] = useState(
     () => localStorage.getItem(TOKEN_STORAGE_KEY) || "",
   );
@@ -138,7 +246,7 @@ function App() {
     () => localStorage.getItem(THEME_STORAGE_KEY) === "dark",
   );
   const [currentUser, setCurrentUser] = useState(null);
-  const [activeView, setActiveView] = useState("all");
+  const [activeView, setActiveView] = useState(() => getInitialViewFromUrl());
   const [tagQuery, setTagQuery] = useState("");
   const [titleQuery, setTitleQuery] = useState("");
   const [showTagSuggestions, setShowTagSuggestions] = useState(false);
@@ -184,14 +292,46 @@ function App() {
   const [commentText, setCommentText] = useState("");
   const [commentSubmitting, setCommentSubmitting] = useState(false);
   const [commentsError, setCommentsError] = useState("");
+  const [alerts, setAlerts] = useState([]);
+  const [alertForm, setAlertForm] = useState({ topic: "", type: "topic" });
+  const [alertSubmitting, setAlertSubmitting] = useState(false);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [pushState, setPushState] = useState({
+    supported: false,
+    permission: "default",
+    enabled: false,
+    loading: true,
+    busy: false,
+  });
+  const [textScale, setTextScale] = useState(1);
   const loadingProgressRef = useRef(0);
   const loadingAnimationRef = useRef(null);
   const hasBootstrappedRef = useRef(false);
   const likeBurstTimeoutsRef = useRef({});
   const visitTrackedRef = useRef(false);
+  const serviceWorkerRegistrationRef = useRef(null);
+  const loadMoreRef = useRef(null);
 
-  const applyNewsPayload = (payload) => {
-    setNews(payload?.items || []);
+  const applyNewsPayload = (payload, { append = false } = {}) => {
+    const incomingItems = payload?.items || [];
+
+    setNews((prev) => {
+      if (!append) {
+        return incomingItems;
+      }
+
+      const merged = [...prev];
+      const seenLinks = new Set(prev.map((item) => item.link));
+
+      for (const item of incomingItems) {
+        if (!seenLinks.has(item.link)) {
+          merged.push(item);
+          seenLinks.add(item.link);
+        }
+      }
+
+      return merged;
+    });
     setTotalItems(payload?.total || 0);
     setTotalPages(payload?.totalPages || 1);
   };
@@ -272,6 +412,110 @@ function App() {
     return user;
   };
 
+  const registerPushServiceWorker = async () => {
+    if (!("serviceWorker" in navigator)) {
+      return null;
+    }
+
+    if (serviceWorkerRegistrationRef.current) {
+      return serviceWorkerRegistrationRef.current;
+    }
+
+    const registration = await navigator.serviceWorker.register("/sw.js");
+    serviceWorkerRegistrationRef.current = registration;
+    return registration;
+  };
+
+  const loadAlerts = async (authToken = token, shouldApply = true) => {
+    if (!authToken) {
+      if (shouldApply) {
+        setAlerts([]);
+      }
+      return [];
+    }
+
+    const res = await axios.get(`${API_BASE_URL}/api/alerts/check`, {
+      headers: {
+        Authorization: `Bearer ${authToken}`,
+      },
+    });
+    const items = res.data?.items || [];
+
+    if (shouldApply) {
+      setAlerts(items);
+    }
+
+    return items;
+  };
+
+  const loadPushStatus = async (authToken = token) => {
+    const supported =
+      typeof window !== "undefined" &&
+      "Notification" in window &&
+      "serviceWorker" in navigator &&
+      "PushManager" in window;
+
+    if (!supported) {
+      setPushState({
+        supported: false,
+        permission: "unsupported",
+        enabled: false,
+        loading: false,
+        busy: false,
+      });
+      return;
+    }
+
+    const permission = Notification.permission || "default";
+
+    if (!authToken) {
+      setPushState({
+        supported: true,
+        permission,
+        enabled: false,
+        loading: false,
+        busy: false,
+      });
+      return;
+    }
+
+    setPushState((prev) => ({
+      ...prev,
+      supported: true,
+      permission,
+      loading: true,
+    }));
+
+    try {
+      const registration = await registerPushServiceWorker();
+      const existingSubscription =
+        await registration?.pushManager.getSubscription();
+      const res = await axios.get(`${API_BASE_URL}/api/push/subscriptions`, {
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+        },
+      });
+
+      setPushState((prev) => ({
+        ...prev,
+        supported: true,
+        permission,
+        enabled: Boolean(
+          existingSubscription || (res.data?.items || []).length,
+        ),
+        loading: false,
+      }));
+    } catch {
+      setPushState((prev) => ({
+        ...prev,
+        supported: true,
+        permission,
+        enabled: false,
+        loading: false,
+      }));
+    }
+  };
+
   const loadNews = async (
     view = activeView,
     tag = tagQuery,
@@ -279,6 +523,7 @@ function App() {
     date = dateFilter,
     page = currentPage,
     authToken = token,
+    append = false,
     shouldApply = true,
   ) => {
     if (view === "favorites" && !authToken) {
@@ -313,9 +558,9 @@ function App() {
     };
 
     if (shouldApply) {
-      applyNewsPayload(payload);
+      applyNewsPayload(payload, { append });
 
-      if (isDefaultFeedRequest(view, tag, title, date, page)) {
+      if (isDefaultFeedRequest(view, tag, title, date) && page === 1) {
         cacheDefaultFeed(payload);
       }
     }
@@ -358,8 +603,11 @@ function App() {
     await axios.get(`${API_BASE_URL}/api/hindu`);
   };
 
+  const selectedTags = parseSelectedTags(tagQuery);
+  const selectedTagSet = new Set(selectedTags);
+
   const matchingTags = availableTags.filter((tag) => {
-    const normalizedTagFilter = tagQuery.trim().toLowerCase();
+    const normalizedTagFilter = tagBrowserQuery.trim().toLowerCase();
 
     if (!normalizedTagFilter) {
       return true;
@@ -367,7 +615,6 @@ function App() {
 
     return tag.toLowerCase().includes(normalizedTagFilter);
   });
-  const normalizedSelectedTag = tagQuery.trim().toLowerCase();
   const filteredBrowserTags = availableTags.filter((tag) => {
     const normalizedTagFilter = tagBrowserQuery.trim().toLowerCase();
 
@@ -390,6 +637,33 @@ function App() {
     localStorage.setItem(THEME_STORAGE_KEY, isDarkMode ? "dark" : "light");
     document.body.classList.toggle("dark-mode", isDarkMode);
   }, [isDarkMode]);
+
+  useEffect(() => {
+    updateUrlParams({ view: activeView });
+  }, [activeView]);
+
+  useEffect(() => {
+    if (!("Notification" in window) || !("serviceWorker" in navigator)) {
+      setPushState((prev) => ({
+        ...prev,
+        supported: false,
+        permission: "unsupported",
+        loading: false,
+      }));
+      return;
+    }
+
+    registerPushServiceWorker()
+      .catch(() => null)
+      .finally(() => {
+        setPushState((prev) => ({
+          ...prev,
+          supported: "PushManager" in window,
+          permission: Notification.permission || "default",
+          loading: false,
+        }));
+      });
+  }, []);
 
   useEffect(() => {
     const bootstrap = async () => {
@@ -428,10 +702,18 @@ function App() {
         if (token) {
           try {
             await loadCurrentUser(token);
+            await loadPushStatus(token);
           } catch {
             setToken("");
             setCurrentUser(null);
+            setPushState((prev) => ({
+              ...prev,
+              enabled: false,
+              loading: false,
+            }));
           }
+        } else {
+          await loadPushStatus("");
         }
 
         setLoadingMessage("Loading tags and headlines...");
@@ -443,18 +725,12 @@ function App() {
           loadTags(false),
           sharedArticleLink
             ? loadSharedArticle(sharedArticleLink, token, false)
-            : loadNews("all", "", "", "", 1, token, false),
+            : loadNews("all", "", "", "", 1, token, false, false),
         ]);
 
         const hasDefaultScreenOpen =
           !sharedArticleLink &&
-          isDefaultFeedRequest(
-            activeView,
-            tagQuery,
-            titleQuery,
-            dateFilter,
-            currentPage,
-          );
+          isDefaultFeedRequest(activeView, tagQuery, titleQuery, dateFilter);
         const cachedSignature = getNewsPayloadSignature(cachedPayload);
         const latestSignature = sharedArticleLink
           ? JSON.stringify({ item: latestPayload?.link || "" })
@@ -515,6 +791,18 @@ function App() {
   }, []);
 
   useEffect(() => {
+    loadPushStatus(token);
+  }, [token]);
+
+  useEffect(() => {
+    if (loading || authScreen) return;
+
+    if ((activeView === "favorites" || activeView === "alerts") && !token) {
+      openAuthScreen("login");
+    }
+  }, [activeView, authScreen, loading, token]);
+
+  useEffect(() => {
     if (visitTrackedRef.current) {
       return;
     }
@@ -527,8 +815,7 @@ function App() {
       title: document.title,
       referrer: document.referrer || "",
       screen: `${window.screen?.width || 0}x${window.screen?.height || 0}`,
-      timezone:
-        Intl.DateTimeFormat().resolvedOptions().timeZone || "Unknown",
+      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "Unknown",
       language: navigator.language || "",
     };
 
@@ -540,19 +827,33 @@ function App() {
     if (loading || authScreen) return;
 
     const updateNews = async () => {
-      setRefreshing(true);
+      if (activeView === "alerts" && !token) {
+        return;
+      }
+
+      if (currentPage > 1) {
+        setIsLoadingMore(true);
+      } else {
+        setRefreshing(true);
+      }
       setError("");
 
       try {
-        await loadNews(
-          activeView,
-          tagQuery,
-          titleQuery,
-          dateFilter,
-          currentPage,
-          token,
-        );
-        if (sharedArticleLink) {
+        if (activeView === "alerts") {
+          await loadAlerts(token);
+        } else {
+          await loadNews(
+            activeView,
+            tagQuery,
+            titleQuery,
+            dateFilter,
+            currentPage,
+            token,
+            currentPage > 1,
+          );
+        }
+
+        if (sharedArticleLink && activeView !== "alerts") {
           const sharedItem = await loadSharedArticle(
             sharedArticleLink,
             token,
@@ -579,6 +880,7 @@ function App() {
         );
       } finally {
         setRefreshing(false);
+        setIsLoadingMore(false);
       }
     };
 
@@ -597,22 +899,55 @@ function App() {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [activeView, dateFilter, tagQuery, titleQuery]);
+  }, [activeView, dateFilter, tagQuery, titleQuery, sharedArticleLink]);
 
   useEffect(() => {
     if (
-      !isDefaultFeedRequest(
-        activeView,
-        tagQuery,
-        titleQuery,
-        dateFilter,
-        currentPage,
-      )
+      !loadMoreRef.current ||
+      loading ||
+      refreshing ||
+      activeView === "alerts" ||
+      sharedArticleLink ||
+      currentPage >= totalPages
     ) {
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const [entry] = entries;
+
+        if (entry?.isIntersecting) {
+          setCurrentPage((page) => {
+            if (page >= totalPages) {
+              return page;
+            }
+
+            return page + 1;
+          });
+        }
+      },
+      { rootMargin: "200px 0px" },
+    );
+
+    observer.observe(loadMoreRef.current);
+
+    return () => observer.disconnect();
+  }, [
+    activeView,
+    currentPage,
+    loading,
+    refreshing,
+    sharedArticleLink,
+    totalPages,
+  ]);
+
+  useEffect(() => {
+    if (!isDefaultFeedRequest(activeView, tagQuery, titleQuery, dateFilter)) {
       setPendingLatestNews(null);
       setPendingLatestTags([]);
     }
-  }, [activeView, tagQuery, titleQuery, dateFilter, currentPage]);
+  }, [activeView, tagQuery, titleQuery, dateFilter]);
 
   useEffect(() => {
     if (!toast.show) return;
@@ -662,7 +997,7 @@ function App() {
     if (!sharedArticleLink) return;
 
     setSharedArticleLink("");
-    window.history.replaceState({}, "", window.location.pathname);
+    updateUrlParams({ article: null });
   };
 
   const handleAuthSubmit = async (e) => {
@@ -682,7 +1017,18 @@ function App() {
       const nextToken = res.data?.token || "";
 
       setToken(nextToken);
-      setCurrentUser(res.data?.user || null);
+      const nextUser = res.data?.user || null;
+      setCurrentUser(nextUser);
+
+      const blogSyncResult = await syncBlogSession({
+        name:
+          nextUser?.name ||
+          authForm.name ||
+          authForm.email?.split("@")[0] ||
+          "",
+        email: authForm.email,
+        password: authForm.password,
+      });
 
       if (pendingFavoriteArticle) {
         await axios.post(
@@ -710,15 +1056,23 @@ function App() {
           dateFilter,
           1,
           nextToken,
+          false,
         );
-        setCurrentPage(1);
+      }
+
+      if (activeView === "alerts") {
+        await Promise.all([loadAlerts(nextToken), loadPushStatus(nextToken)]);
       }
 
       setAuthScreen(null);
       setToast({
         show: true,
-        message: authScreen === "register" ? "Account created" : "Signed in",
-        type: "success",
+        message: blogSyncResult?.message
+          ? `${authScreen === "register" ? "Account created" : "Signed in"}. ${blogSyncResult.message}`
+          : authScreen === "register"
+            ? "Account created across News and Blogs"
+            : "Signed in across News and Blogs",
+        type: blogSyncResult?.message ? "info" : "success",
       });
     } catch (err) {
       setError(
@@ -768,17 +1122,15 @@ function App() {
       );
 
       if (activeView === "favorites") {
-        if (!isFavorite && news.length === 1 && currentPage > 1) {
-          setCurrentPage((page) => Math.max(1, page - 1));
-          return;
-        }
-
+        setCurrentPage(1);
         await loadNews(
           activeView,
           tagQuery,
           titleQuery,
           dateFilter,
-          currentPage,
+          1,
+          token,
+          false,
         );
       }
     } catch (err) {
@@ -858,10 +1210,7 @@ function App() {
                 likeCount:
                   isLiked === nextLikedState
                     ? item.likeCount || 0
-                    : Math.max(
-                        0,
-                        (item.likeCount || 0) + (isLiked ? 1 : -1),
-                      ),
+                    : Math.max(0, (item.likeCount || 0) + (isLiked ? 1 : -1)),
               }
             : item,
         ),
@@ -891,15 +1240,13 @@ function App() {
   const handleViewChange = (view) => {
     clearSharedArticleFocus();
 
-    if (view === "favorites" && !token) {
-      setActiveView("favorites");
-      setCurrentPage(1);
+    if ((view === "favorites" || view === "alerts") && !token) {
+      setActiveView(view);
       openAuthScreen("login");
       return;
     }
 
     setActiveView(view);
-    setCurrentPage(1);
   };
 
   const handleReadArticle = (link) => {
@@ -974,6 +1321,201 @@ function App() {
         message: "Unable to share this article",
         type: "info",
       });
+    }
+  };
+
+  const handleCreateAlert = async (e) => {
+    e.preventDefault();
+
+    if (!token) {
+      openAuthScreen("login");
+      return;
+    }
+
+    const topic = alertForm.topic.trim();
+    if (!topic) {
+      setError("Topic is required to create an alert.");
+      return;
+    }
+
+    setAlertSubmitting(true);
+    setError("");
+
+    try {
+      await axios.post(
+        `${API_BASE_URL}/api/alerts`,
+        {
+          topic,
+          type: alertForm.type,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      );
+
+      setAlertForm({ topic: "", type: "topic" });
+      await loadAlerts(token);
+      setToast({
+        show: true,
+        message: "Alert created",
+        type: "success",
+      });
+    } catch (err) {
+      setError(err?.response?.data?.message || "Unable to create alert.");
+    } finally {
+      setAlertSubmitting(false);
+    }
+  };
+
+  const handleToggleAlert = async (alertId, enabled) => {
+    try {
+      await axios.patch(
+        `${API_BASE_URL}/api/alerts/${alertId}`,
+        { enabled },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      );
+
+      await loadAlerts(token);
+    } catch (err) {
+      setError(err?.response?.data?.message || "Unable to update alert.");
+    }
+  };
+
+  const handleDeleteAlert = async (alertId) => {
+    try {
+      await axios.delete(`${API_BASE_URL}/api/alerts/${alertId}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      await loadAlerts(token);
+      setToast({
+        show: true,
+        message: "Alert removed",
+        type: "success",
+      });
+    } catch (err) {
+      setError(err?.response?.data?.message || "Unable to remove alert.");
+    }
+  };
+
+  const handleEnablePush = async () => {
+    if (!token) {
+      openAuthScreen("login");
+      return;
+    }
+
+    if (Notification.permission === "denied") {
+      setToast({
+        show: true,
+        message: "Browser notifications are blocked for this site",
+        type: "info",
+      });
+      setPushState((prev) => ({ ...prev, permission: "denied" }));
+      return;
+    }
+
+    setPushState((prev) => ({ ...prev, busy: true }));
+    setError("");
+
+    try {
+      const permission = await Notification.requestPermission();
+      if (permission !== "granted") {
+        setPushState((prev) => ({
+          ...prev,
+          permission,
+          enabled: false,
+          busy: false,
+        }));
+        return;
+      }
+
+      const registration = await registerPushServiceWorker();
+      const keyRes = await axios.get(`${API_BASE_URL}/api/push/public-key`);
+      const existingSubscription =
+        await registration.pushManager.getSubscription();
+      const subscription =
+        existingSubscription ||
+        (await registration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(
+            keyRes.data?.publicKey || "",
+          ),
+        }));
+
+      await axios.post(
+        `${API_BASE_URL}/api/push/subscribe`,
+        { subscription },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      );
+
+      setPushState((prev) => ({
+        ...prev,
+        permission,
+        enabled: true,
+        busy: false,
+      }));
+      setToast({
+        show: true,
+        message: "Push notifications enabled",
+        type: "success",
+      });
+    } catch (err) {
+      setPushState((prev) => ({ ...prev, busy: false }));
+      setError(
+        err?.response?.data?.message || "Unable to enable push notifications.",
+      );
+    }
+  };
+
+  const handleDisablePush = async () => {
+    setPushState((prev) => ({ ...prev, busy: true }));
+    setError("");
+
+    try {
+      const registration = await registerPushServiceWorker();
+      const subscription = await registration?.pushManager.getSubscription();
+
+      if (subscription) {
+        await axios.post(
+          `${API_BASE_URL}/api/push/unsubscribe`,
+          { endpoint: subscription.endpoint },
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          },
+        );
+
+        await subscription.unsubscribe();
+      }
+
+      setPushState((prev) => ({
+        ...prev,
+        enabled: false,
+        busy: false,
+      }));
+      setToast({
+        show: true,
+        message: "Push notifications disabled",
+        type: "success",
+      });
+    } catch (err) {
+      setPushState((prev) => ({ ...prev, busy: false }));
+      setError(
+        err?.response?.data?.message || "Unable to disable push notifications.",
+      );
     }
   };
 
@@ -1053,15 +1595,28 @@ function App() {
   const handleRefresh = async () => {
     setRefreshing(true);
     setError("");
+    setCurrentPage(1);
 
     try {
       await syncNews();
-      await Promise.all([
-        loadTags(),
-        sharedArticleLink
-          ? loadSharedArticle(sharedArticleLink)
-          : loadNews(activeView, tagQuery, titleQuery, dateFilter, currentPage),
-      ]);
+      if (activeView === "alerts") {
+        await Promise.all([loadAlerts(), loadPushStatus()]);
+      } else {
+        await Promise.all([
+          loadTags(),
+          sharedArticleLink
+            ? loadSharedArticle(sharedArticleLink)
+            : loadNews(
+                activeView,
+                tagQuery,
+                titleQuery,
+                dateFilter,
+                1,
+                token,
+                false,
+              ),
+        ]);
+      }
       setPendingLatestNews(null);
       setPendingLatestTags([]);
     } catch (err) {
@@ -1087,15 +1642,29 @@ function App() {
     setTitleQuery("");
     setShowTagSuggestions(false);
     setDateFilter("");
-    setCurrentPage(1);
     setIsMobileTagMenuOpen(false);
   };
 
   const applyTagQuery = (tag) => {
     clearSharedArticleFocus();
-    setTagQuery(tag);
+    const normalizedTag = String(tag || "")
+      .trim()
+      .toLowerCase();
+
+    if (!normalizedTag) {
+      setTagQuery("");
+      setShowTagSuggestions(false);
+      setIsMobileTagMenuOpen(false);
+      setTagBrowserQuery("");
+      return;
+    }
+
+    const nextTags = selectedTagSet.has(normalizedTag)
+      ? selectedTags.filter((item) => item !== normalizedTag)
+      : [...selectedTags, normalizedTag];
+
+    setTagQuery(nextTags.join(","));
     setShowTagSuggestions(false);
-    setCurrentPage(1);
     setIsMobileTagMenuOpen(false);
     setTagBrowserQuery("");
   };
@@ -1105,63 +1674,31 @@ function App() {
   };
 
   const openTagBrowser = () => {
-    if (window.innerWidth < 1024) {
-      setIsMobileTagMenuOpen(true);
-      return;
-    }
+    setIsMobileTagMenuOpen(true);
+  };
 
-    document.getElementById("tag-sidebar")?.scrollIntoView({
-      behavior: "smooth",
-      block: "start",
-    });
+  const openSearchModal = () => {
+    setIsSearchModalOpen(true);
+  };
+
+  const increaseTextScale = () => {
+    setTextScale((prev) => Math.min(1.35, Number((prev + 0.1).toFixed(2))));
+  };
+
+  const decreaseTextScale = () => {
+    setTextScale((prev) => Math.max(0.9, Number((prev - 0.1).toFixed(2))));
   };
 
   if (authScreen) {
     return (
       <div className="min-h-screen bg-slate-100 px-4 py-6 text-slate-900 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-7xl">
-          <nav className="mb-6 grid gap-4 rounded-2xl bg-white p-4 shadow-sm sm:grid-cols-[auto_1fr_auto] sm:items-center">
-            <div className="flex justify-start">
-              <img
-                src="/lightning-news-logo.png"
-                alt="Lightning News logo"
-                className="h-14 w-14 rounded-full object-cover"
-              />
-            </div>
-
-            <div className="text-center">
-              <h1 className="text-3xl font-bold">N E W Z</h1>
-              <div className="flex justify-center gap-3">
-                <p className="text-sm font-medium uppercase tracking-[0.25em] text-blue-600">
-                  Kanha Gupta
-                </p>
-                <a
-                  href="https://wa.me/919131395725"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-sm text-red-600"
-                >
-                  Contact
-                </a>
-              </div>
-            </div>
-
-            <div className="flex justify-end">
-              <button
-                type="button"
-                onClick={() => {
-                  setAuthScreen(null);
-                  setPendingFavoriteArticle(null);
-                  if (!token) {
-                    setActiveView("all");
-                  }
-                }}
-                className="rounded-full bg-slate-200 px-4 py-2 text-sm font-semibold text-slate-700"
-              >
-                Back to News
-              </button>
-            </div>
-          </nav>
+          <TopNavbar
+            setAuthScreen={setAuthScreen}
+            setPendingFavoriteArticle={setPendingFavoriteArticle}
+            setActiveView={setActiveView}
+            token={token}
+          />
 
           <div className="mx-auto max-w-md rounded-2xl bg-white p-6 shadow-sm">
             <p className="text-sm font-medium uppercase tracking-[0.25em] text-blue-600">
@@ -1386,15 +1923,15 @@ function App() {
           </div>
         </div>
       ) : null}
-      <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-        <nav className="mb-6 rounded-2xl bg-white p-4 shadow-sm">
+      <div className="mx-auto max-w-7xl px-4 pb-40 pt-44 sm:px-6 sm:pb-28 sm:pt-36 lg:px-8">
+        <nav className="fixed inset-x-4 top-4 z-30 mx-auto max-w-7xl rounded-3xl bg-white/95 p-4 shadow-lg backdrop-blur sm:inset-x-6 lg:inset-x-8">
           <div className="flex flex-wrap items-center gap-3">
             <img
               src="/lightning-news-logo.png"
               alt="Lightning News logo"
               className="h-14 w-14 rounded-full object-cover"
             />
-            <button
+            {/* <button
               type="button"
               onClick={() => handleViewChange("all")}
               className={`rounded-full px-4 py-2 text-sm font-semibold ${
@@ -1404,8 +1941,8 @@ function App() {
               }`}
             >
               All News
-            </button>
-            <button
+            </button> */}
+            {/* <button
               type="button"
               onClick={() => handleViewChange("favorites")}
               className={`rounded-full px-4 py-2 text-sm font-semibold ${
@@ -1415,6 +1952,26 @@ function App() {
               }`}
             >
               Favorites
+            </button> */}
+            {/* <button
+              type="button"
+              onClick={() => handleViewChange("alerts")}
+              className={`rounded-full px-4 py-2 text-sm font-semibold ${
+                activeView === "alerts"
+                  ? "bg-blue-600 text-white"
+                  : "bg-slate-200 text-slate-700"
+              }`}
+            >
+              Alerts
+            </button> */}
+            <button
+              type="button"
+              onClick={toggleThemeMode}
+              className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-200 text-sm font-semibold text-slate-700"
+              aria-label={isDarkMode ? "Light mode" : "Dark mode"}
+              title={isDarkMode ? "Light mode" : "Dark mode"}
+            >
+              {isDarkMode ? <FaSun /> : <FaMoon />}
             </button>
             <button
               type="button"
@@ -1437,9 +1994,12 @@ function App() {
               </button>
             ) : null}
           </div>
-          <div className="mt-3 flex items-center gap-3">
+          <div className="mt-3 flex flex-wrap items-center gap-3">
             <p className="text-sm font-medium uppercase tracking-[0.25em] text-blue-600">
               Kanha Gupta
+            </p>
+            <p className="rounded-full bg-slate-200 px-4 py-2 text-sm font-semibold text-slate-700">
+              Articles: {totalItems}
             </p>
             <a
               href="https://wa.me/919131395725"
@@ -1449,11 +2009,36 @@ function App() {
             >
               Contact
             </a>
+            <button
+              type="button"
+              onClick={() => {
+                if (token) {
+                  setToken("");
+                  setCurrentUser(null);
+                  setActiveView("all");
+                  setAlerts([]);
+                } else {
+                  openAuthScreen("login");
+                }
+              }}
+              className="rounded-full bg-slate-200 px-4 py-2 text-sm font-semibold text-slate-700"
+            >
+              {token ? "Sign Out" : "Sign In"}
+            </button>
           </div>
         </nav>
+        <BottomNavbar
+          handleViewChange={handleViewChange}
+          activeView={activeView}
+          openSearchModal={openSearchModal}
+          openTagBrowser={openTagBrowser}
+          textScale={textScale}
+          increaseTextScale={increaseTextScale}
+          decreaseTextScale={decreaseTextScale}
+        />
 
-        {isMobileTagMenuOpen ? (
-          <div className="fixed inset-0 z-40 flex items-center justify-center bg-slate-900/50 px-4 lg:hidden">
+        {activeView !== "alerts" && isMobileTagMenuOpen ? (
+          <div className="fixed inset-0 z-40 flex items-center justify-center bg-slate-900/50 px-4">
             <div className="max-h-[80vh] w-full max-w-sm overflow-y-auto rounded-2xl bg-white p-4 shadow-xl">
               <div className="mb-4 flex items-start justify-between gap-4">
                 <div>
@@ -1487,7 +2072,7 @@ function App() {
                   type="button"
                   onClick={() => applyTagQuery("")}
                   className={`w-full rounded-xl px-4 py-3 text-left text-sm font-semibold transition ${
-                    normalizedSelectedTag
+                    selectedTags.length
                       ? "bg-slate-100 text-slate-700 hover:bg-slate-200"
                       : "bg-slate-900 text-white"
                   }`}
@@ -1496,7 +2081,7 @@ function App() {
                 </button>
 
                 {filteredBrowserTags.map((tag) => {
-                  const isActive = normalizedSelectedTag === tag.toLowerCase();
+                  const isActive = selectedTagSet.has(tag.toLowerCase());
 
                   return (
                     <button
@@ -1518,60 +2103,133 @@ function App() {
           </div>
         ) : null}
 
-        <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
-          <aside
-            id="tag-sidebar"
-            className="hidden lg:sticky lg:top-6 lg:block lg:w-64 lg:flex-shrink-0"
-          >
-            <div className="rounded-2xl bg-white p-4 shadow-sm">
-              <div className="mb-4">
-                <p className="text-xs font-semibold uppercase tracking-[0.24em] text-blue-600">
-                  Browse Tags
-                </p>
-                <h2 className="mt-2 text-lg font-bold text-slate-900">
-                  Filter by category
-                </h2>
-              </div>
-
-              <div className="flex flex-col gap-2">
+        {activeView !== "alerts" && isSearchModalOpen ? (
+          <div className="fixed inset-0 z-40 flex items-center justify-center bg-slate-900/50 px-4">
+            <div className="w-full max-w-xl rounded-2xl bg-white p-4 shadow-xl">
+              <div className="mb-4 flex items-start justify-between gap-4">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.24em] text-blue-600">
+                    Search News
+                  </p>
+                  <h2 className="mt-2 text-lg font-bold text-slate-900">
+                    Filter by title and date
+                  </h2>
+                </div>
                 <button
                   type="button"
-                  onClick={() => applyTagQuery("")}
-                  className={`w-full rounded-xl px-4 py-3 text-left text-sm font-semibold transition ${
-                    normalizedSelectedTag
-                      ? "bg-slate-100 text-slate-700 hover:bg-slate-200"
-                      : "bg-slate-900 text-white"
-                  }`}
+                  onClick={() => setIsSearchModalOpen(false)}
+                  className="rounded-full bg-slate-200 px-3 py-2 text-sm font-semibold text-slate-700"
                 >
-                  All Tags
+                  Close
                 </button>
+              </div>
 
-                {availableTags.map((tag) => {
-                  const isActive = normalizedSelectedTag === tag.toLowerCase();
+              <div className="space-y-4">
+                <div>
+                  <label
+                    htmlFor="modal-title-search"
+                    className="mb-2 block text-sm font-semibold text-slate-700"
+                  >
+                    Search headline text
+                  </label>
+                  <input
+                    id="modal-title-search"
+                    value={titleQuery}
+                    onChange={(e) => {
+                      clearSharedArticleFocus();
+                      setTitleQuery(e.target.value);
+                    }}
+                    placeholder="Search headline text..."
+                    className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none transition focus:border-blue-500"
+                  />
+                </div>
 
-                  return (
-                    <button
-                      key={tag}
-                      type="button"
-                      onClick={() => applyTagQuery(tag)}
-                      className={`w-full rounded-xl px-4 py-3 text-left text-sm font-semibold transition ${
-                        isActive
-                          ? "bg-blue-600 text-white"
-                          : "bg-slate-100 text-slate-700 hover:bg-slate-200"
-                      }`}
-                    >
-                      #{tag}
-                    </button>
-                  );
-                })}
+                <div>
+                  <label
+                    htmlFor="modal-date-search"
+                    className="mb-2 block text-sm font-semibold text-slate-700"
+                  >
+                    Filter by date
+                  </label>
+                  <input
+                    id="modal-date-search"
+                    type="date"
+                    value={dateFilter}
+                    onChange={(e) => {
+                      clearSharedArticleFocus();
+                      setDateFilter(e.target.value);
+                    }}
+                    className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none transition focus:border-blue-500"
+                  />
+                </div>
+
+                <div className="flex flex-wrap gap-3">
+                  <button
+                    type="button"
+                    onClick={clearAllFilters}
+                    className="rounded-xl bg-slate-200 px-4 py-3 text-sm font-semibold text-slate-700"
+                  >
+                    Clear Filters
+                  </button>
+                </div>
               </div>
             </div>
+          </div>
+        ) : null}
+        <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
+          <aside id="tag-sidebar" className="hidden">
+            {activeView === "alerts" ? null : (
+              <div className="rounded-2xl bg-white p-4 shadow-sm">
+                <div className="mb-4">
+                  <p className="text-xs font-semibold uppercase tracking-[0.24em] text-blue-600">
+                    Browse Tags
+                  </p>
+                  <h2 className="mt-2 text-lg font-bold text-slate-900">
+                    Filter by category
+                  </h2>
+                </div>
+
+                <div className="flex flex-col gap-2">
+                  <button
+                    type="button"
+                    onClick={() => applyTagQuery("")}
+                    className={`w-full rounded-xl px-4 py-3 text-left text-sm font-semibold transition ${
+                      selectedTags.length
+                        ? "bg-slate-100 text-slate-700 hover:bg-slate-200"
+                        : "bg-slate-900 text-white"
+                    }`}
+                  >
+                    All Tags
+                  </button>
+
+                  {availableTags.map((tag) => {
+                    const isActive = selectedTagSet.has(tag.toLowerCase());
+
+                    return (
+                      <button
+                        key={tag}
+                        type="button"
+                        onClick={() => applyTagQuery(tag)}
+                        className={`w-full rounded-xl px-4 py-3 text-left text-sm font-semibold transition ${
+                          isActive
+                            ? "bg-blue-600 text-white"
+                            : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+                        }`}
+                      >
+                        #{tag}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </aside>
 
           <div className="min-w-0 flex-1">
-            <div className="mb-6 grid grid-cols-1 gap-3 rounded-2xl bg-white p-4 shadow-sm lg:grid-cols-[auto_minmax(0,1fr)_auto] lg:items-end">
-              <div className="max-w-xl">
-                
+            {activeView === "alerts" ? null : (
+              <div className="mt-5 bg-black p-4">
+                <div className="max-w-3xl">
+                  {/*
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
@@ -1587,22 +2245,37 @@ function App() {
                       onChange={(e) => {
                         clearSharedArticleFocus();
                         setTitleQuery(e.target.value);
-                        setCurrentPage(1);
                       }}
                       placeholder="Search headline text..."
                       className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none transition focus:border-blue-500"
                     />
                   </div>
                 </div>
-              </div>
+                */}
+                  {selectedTags.length ? (
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {selectedTags.map((tag) => (
+                        <button
+                          key={`selected-${tag}`}
+                          type="button"
+                          onClick={() => applyTagQuery(tag)}
+                          className="rounded-full bg-slate-900 px-3 py-1 text-xs font-semibold text-white"
+                        >
+                          #{tag} x
+                        </button>
+                      ))}
+                    </div>
+                  ) : null}
+                </div>
 
-              <div className="min-w-0 lg:mt-0">
-                {/* <label
+                <div className="min-w-0 lg:mt-0">
+                  {/* <label
                   htmlFor="date-search"
                   className="mb-2 block text-sm font-semibold text-slate-700"
                 >
                   Search by date
                 </label> */}
+                  {/*
                 <div className="flex items-center gap-2">
                   <input
                     id="date-search"
@@ -1611,7 +2284,6 @@ function App() {
                     onChange={(e) => {
                       clearSharedArticleFocus();
                       setDateFilter(e.target.value);
-                      setCurrentPage(1);
                     }}
                     className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none transition focus:border-blue-500"
                   />
@@ -1634,8 +2306,10 @@ function App() {
                     {isDarkMode ? <FaSun /> : <FaMoon />}
                   </button>
                 </div>
+                */}
+                </div>
               </div>
-            </div>
+            )}
 
             {loading ? (
               <div className="flex min-h-[40vh] items-center justify-center">
@@ -1671,7 +2345,195 @@ function App() {
                   </p>
                 ) : null}
 
-                {news.length === 0 ? (
+                {activeView === "alerts" ? (
+                  <div className="space-y-6">
+                    <div className="rounded-2xl bg-white p-5 shadow-sm">
+                      <p className="text-xs font-semibold uppercase tracking-[0.24em] text-blue-600">
+                        Push Notifications
+                      </p>
+                      <h2 className="mt-2 text-xl font-bold text-slate-900">
+                        Saved alert delivery
+                      </h2>
+                      <p className="mt-2 text-sm text-slate-500">
+                        {pushState.supported
+                          ? pushState.enabled
+                            ? "Notifications are enabled for this browser."
+                            : pushState.permission === "denied"
+                              ? "Notifications are blocked in browser settings."
+                              : "Enable browser notifications to receive saved alert matches."
+                          : "This browser does not support web push notifications."}
+                      </p>
+                      <div className="mt-4 flex flex-wrap gap-3">
+                        <button
+                          type="button"
+                          onClick={
+                            pushState.enabled
+                              ? handleDisablePush
+                              : handleEnablePush
+                          }
+                          disabled={
+                            !pushState.supported ||
+                            pushState.loading ||
+                            pushState.busy
+                          }
+                          className={`rounded-xl px-4 py-3 text-sm font-semibold ${
+                            pushState.enabled
+                              ? "bg-slate-900 text-white"
+                              : "bg-blue-600 text-white"
+                          } disabled:cursor-not-allowed disabled:opacity-50`}
+                        >
+                          {pushState.busy
+                            ? "Working..."
+                            : pushState.enabled
+                              ? "Disable Push"
+                              : "Enable Push"}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => loadPushStatus(token)}
+                          disabled={pushState.busy}
+                          className="rounded-xl bg-slate-200 px-4 py-3 text-sm font-semibold text-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          Refresh Status
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="rounded-2xl bg-white p-5 shadow-sm">
+                      <p className="text-xs font-semibold uppercase tracking-[0.24em] text-blue-600">
+                        Saved Alerts
+                      </p>
+                      <h2 className="mt-2 text-xl font-bold text-slate-900">
+                        Create a topic alert
+                      </h2>
+                      <form
+                        onSubmit={handleCreateAlert}
+                        className="mt-4 grid gap-3 md:grid-cols-[minmax(0,1fr)_180px_auto]"
+                      >
+                        <input
+                          value={alertForm.topic}
+                          onChange={(e) =>
+                            setAlertForm((prev) => ({
+                              ...prev,
+                              topic: e.target.value,
+                            }))
+                          }
+                          placeholder="Example: kerala rain"
+                          className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none transition focus:border-blue-500"
+                        />
+                        <select
+                          value={alertForm.type}
+                          onChange={(e) =>
+                            setAlertForm((prev) => ({
+                              ...prev,
+                              type: e.target.value,
+                            }))
+                          }
+                          className="rounded-xl border border-slate-300 px-4 py-3 outline-none transition focus:border-blue-500"
+                        >
+                          <option value="topic">Topic alert</option>
+                          <option value="breaking">Breaking alert</option>
+                        </select>
+                        <button
+                          type="submit"
+                          disabled={alertSubmitting}
+                          className="rounded-xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          {alertSubmitting ? "Saving..." : "Create Alert"}
+                        </button>
+                      </form>
+                    </div>
+
+                    {alerts.length === 0 ? (
+                      <div className="rounded-2xl bg-white p-10 text-center shadow-sm">
+                        <p className="text-lg font-semibold text-slate-700">
+                          No alerts yet.
+                        </p>
+                        <p className="mt-2 text-sm text-slate-500">
+                          Create a topic alert and this browser can notify you
+                          when matching stories arrive.
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="grid gap-6 md:grid-cols-2">
+                        {alerts.map((alert) => (
+                          <article
+                            key={alert._id}
+                            className="rounded-2xl bg-white p-5 shadow-sm"
+                          >
+                            <div className="flex items-start justify-between gap-3">
+                              <div>
+                                <p className="text-xs font-semibold uppercase tracking-[0.24em] text-blue-600">
+                                  {alert.type}
+                                </p>
+                                <h3 className="mt-2 text-lg font-bold text-slate-900">
+                                  {alert.topic}
+                                </h3>
+                              </div>
+                              <span
+                                className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                                  alert.enabled
+                                    ? "bg-emerald-100 text-emerald-700"
+                                    : "bg-slate-200 text-slate-600"
+                                }`}
+                              >
+                                {alert.enabled ? "Active" : "Paused"}
+                              </span>
+                            </div>
+
+                            <div className="mt-4 space-y-2 text-sm text-slate-600">
+                              <p>
+                                {alert.matchCount || 0} recent match
+                                {(alert.matchCount || 0) === 1 ? "" : "es"}
+                              </p>
+                              <p>
+                                Latest:{" "}
+                                {alert.latestMatch?.title ||
+                                  "No matching story yet"}
+                              </p>
+                            </div>
+
+                            {alert.matches?.length ? (
+                              <div className="mt-4 space-y-2">
+                                {alert.matches.map((match) => (
+                                  <button
+                                    key={`${alert._id}-${match.link}`}
+                                    type="button"
+                                    onClick={() =>
+                                      handleReadArticle(match.link)
+                                    }
+                                    className="block w-full rounded-xl bg-slate-50 px-4 py-3 text-left text-sm text-slate-700 transition hover:bg-slate-100"
+                                  >
+                                    {match.title}
+                                  </button>
+                                ))}
+                              </div>
+                            ) : null}
+
+                            <div className="mt-4 flex flex-wrap gap-3">
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  handleToggleAlert(alert._id, !alert.enabled)
+                                }
+                                className="rounded-xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white"
+                              >
+                                {alert.enabled ? "Pause" : "Enable"}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteAlert(alert._id)}
+                                className="rounded-xl bg-slate-200 px-4 py-3 text-sm font-semibold text-slate-700"
+                              >
+                                Delete
+                              </button>
+                            </div>
+                          </article>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ) : news.length === 0 ? (
                   <div className="rounded-2xl bg-white p-10 text-center shadow-sm">
                     <p className="text-lg font-semibold text-slate-700">
                       No articles found.
@@ -1681,11 +2543,11 @@ function App() {
                     </p>
                   </div>
                 ) : (
-                  <div className="grid gap-6 sm:grid-cols-1 md:grid-cols-2 xl:grid-cols-3">
+                  <div className="mx-auto grid max-w-3xl gap-3">
                     {news.map((article) => (
                       <article
                         key={article._id || article.link}
-                        className="flex h-full flex-col rounded-2xl bg-white p-5 shadow-sm transition hover:-translate-y-1 hover:shadow-lg"
+                        className="flex min-h-[1rem] flex-col rounded-[1rem] bg-white p-[15] transition hover:-translate-y-1 sm:min-h-[60vh] sm:p-8"
                       >
                         <div className="mb-4 flex items-start justify-between gap-3">
                           <div className="flex flex-wrap gap-2">
@@ -1722,15 +2584,27 @@ function App() {
                           </button>
                         </div>
 
-                        <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
+                        <p className="mb-3 text-sm font-semibold uppercase tracking-[0.2em] text-slate-400">
                           {article.pubDate || "No publish date"}
                         </p>
 
-                        <h2 className="mb-3 text-xl font-bold text-slate-900">
+                        <h2
+                          className="mb-5 font-bold leading-tight text-slate-900"
+                          style={{
+                            fontSize: `${3 * textScale}rem`,
+                            lineHeight: 1.1,
+                          }}
+                        >
                           {article.title}
                         </h2>
 
-                        <p className="line-clamp-4 text-sm leading-6 text-slate-600">
+                        <p
+                          className="line-clamp-6 text-slate-600"
+                          style={{
+                            fontSize: `${1.125 * textScale}rem`,
+                            lineHeight: 1.8,
+                          }}
+                        >
                           {article.description || "No description available."}
                         </p>
 
@@ -1739,7 +2613,7 @@ function App() {
                             <button
                               type="button"
                               onClick={() => handleReadArticle(article.link)}
-                              className="flex items-center justify-center rounded-xl bg-slate-900 p-2 text-sm font-semibold text-white hover:bg-slate-700"
+                              className="flex items-center justify-center rounded-2xl border border-white/60 bg-white/70 p-3 text-2xl text-slate-900 backdrop-blur-sm transition hover:bg-white hover:text-slate-700"
                               aria-label="Read article"
                               title="Read article"
                             >
@@ -1749,7 +2623,7 @@ function App() {
                             <button
                               type="button"
                               onClick={() => handleCreateBlog(article)}
-                              className="flex items-center justify-center rounded-xl bg-emerald-600 p-2 text-sm font-semibold text-white hover:bg-emerald-700 btn btn-sm"
+                              className="flex items-center justify-center rounded-2xl border border-white/60 bg-white/70 p-3 text-2xl text-slate-900 backdrop-blur-sm transition hover:bg-white hover:text-slate-700"
                               aria-label="Write your own experience"
                               title="Write your own experience"
                             >
@@ -1757,26 +2631,27 @@ function App() {
                             </button>
                             <button
                               type="button"
-                              onClick={() => handleReadBlog(article.blogId)}
-                              disabled={!article.blogId}
-                              className={`rounded-xl px-2 py-2 text-sm font-semibold truncate ${
+                              onClick={() =>
                                 article.blogId
-                                  ? "bg-blue-600 text-white hover:bg-blue-700"
-                                  : "cursor-not-allowed bg-slate-200 text-slate-500"
-                              }`}
+                                  ? handleReadBlog(article.blogId)
+                                  : handleCreateBlog(article)
+                              }
+                              className="rounded-2xl border border-white/60 bg-white/70 px-3 py-3 text-sm font-semibold text-slate-900 backdrop-blur-sm transition hover:bg-white hover:text-slate-700"
                             >
-                              {article.blogId ? "Read Blog" : "Blog Pending"}
+                              {article.blogId
+                                ? "Read Blog"
+                                : "Write your experience"}
                             </button>
                           </div>
-                          <div className="mt-4 grid grid-cols-3 gap-3">
+                          <div className="mt-6 grid grid-cols-3 gap-3">
                             <button
                               type="button"
                               onClick={() => handleToggleLike(article)}
                               disabled={Boolean(pendingLikeLinks[article.link])}
-                              className={`flex items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold transition duration-300 ${
+                              className={`flex items-center justify-center gap-2 rounded-2xl border border-white/60 bg-white/70 px-3 py-3 text-xl font-semibold backdrop-blur-sm transition duration-300 hover:bg-white ${
                                 article.isLiked
-                                  ? "bg-red-50 text-red-600"
-                                  : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+                                  ? "text-red-600"
+                                  : "text-slate-700 hover:text-slate-900"
                               } ${
                                 pendingLikeLinks[article.link]
                                   ? "cursor-not-allowed opacity-80"
@@ -1795,19 +2670,18 @@ function App() {
                             <button
                               type="button"
                               onClick={() => handleCommentClick(article)}
-                              className="flex items-center justify-center gap-1 rounded-xl bg-slate-100 px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-200"
+                              className="flex items-center justify-center gap-2 rounded-2xl border border-white/60 bg-white/70 px-3 py-3 text-xl font-semibold text-slate-900 backdrop-blur-sm transition hover:bg-white hover:text-slate-700"
                             >
                               <span className="text-xs font-semibold leading-none">
                                 {article.commentCount || 0}
                               </span>
-                           
-                                <FaCommentDots />
-                           
+
+                              <FaCommentDots />
                             </button>
                             <button
                               type="button"
                               onClick={() => handleShareArticle(article)}
-                              className="flex items-center justify-center gap-2 rounded-xl bg-slate-100 px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-200"
+                              className="flex items-center justify-center gap-2 rounded-2xl border border-white/60 bg-white/70 px-3 py-3 text-xl font-semibold text-slate-900 backdrop-blur-sm transition hover:bg-white hover:text-slate-700"
                               aria-label="Share article"
                               title="Share article"
                             >
@@ -1817,17 +2691,28 @@ function App() {
                         </div>
                       </article>
                     ))}
+                    {activeView !== "alerts" &&
+                    !sharedArticleLink &&
+                    currentPage < totalPages ? (
+                      <div
+                        ref={loadMoreRef}
+                        className="flex min-h-24 items-center justify-center rounded-3xl bg-white/70 p-6 text-sm font-semibold text-slate-500"
+                      >
+                        {refreshing || loading || isLoadingMore
+                          ? "Loading articles..."
+                          : "Loading more articles..."}
+                      </div>
+                    ) : null}
                   </div>
                 )}
 
-                {totalItems > 0 ? (
+                {activeView !== "alerts" && totalItems > 0 ? (
                   <div className="mt-8 flex flex-col items-center justify-between gap-4 rounded-2xl bg-white p-4 shadow-sm sm:flex-row">
                     <p className="text-sm text-slate-600">
-                      Showing {(currentPage - 1) * 10 + 1}-
-                      {Math.min(currentPage * 10, totalItems)} of {totalItems}{" "}
-                      articles
+                      Total {totalItems} articles
                     </p>
                     <div className="flex items-center gap-3">
+                      {/*
                       <button
                         type="button"
                         onClick={() =>
@@ -1853,6 +2738,7 @@ function App() {
                       >
                         Next
                       </button>
+                      */}
                     </div>
                   </div>
                 ) : null}
