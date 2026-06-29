@@ -1,38 +1,22 @@
 import React from "react";
 import {
-  FaArrowUp,
   FaBookmark,
-  FaCommentDots,
-  FaEye,
   FaFilter,
-  FaHeart,
-  FaMinus,
-  FaMoon,
   FaNewspaper,
-  FaPlus,
-  FaPencilAlt,
   FaRegBell,
-  FaRegBookmark,
-  FaRegHeart,
   FaSearch,
-  FaShareAlt,
-  FaSun,
-  FaSyncAlt,
-  FaTimes,
 } from "react-icons/fa";
+
 export default function BottomNavbar({
   handleViewChange,
   activeView,
   openSearchModal,
   openTagBrowser,
-  textScale,
-  increaseTextScale,
-  decreaseTextScale,
 }) {
   return (
     <div>
-      <nav className="fixed inset-x-4 bottom-0.5 z-30 mx-auto max-w-4xl rounded-3xl bg-slate-900 px-3 py-3 text-white shadow-2xl sm:inset-x-6">
-        <div className="grid grid-cols-5 gap-2">
+      <nav className="fixed inset-x-0 bottom-0 z-30 bg-slate-900 px-3 pt-3 pb-2 text-white">
+        <div className="grid grid-cols-5 gap-5">
           <button
             type="button"
             onClick={() => handleViewChange("all")}
@@ -60,7 +44,7 @@ export default function BottomNavbar({
           <button
             type="button"
             onClick={() => handleViewChange("alerts")}
-            className={`flex flex-col items-center gap-1 rounded-2xl text-xs font-semibold ${
+            className={`flex flex-col items-center gap-1 rounded-2xl px-3 py-2 text-xs font-semibold ${
               activeView === "alerts"
                 ? "bg-white text-slate-900"
                 : "bg-transparent text-white"
@@ -72,7 +56,7 @@ export default function BottomNavbar({
           <button
             type="button"
             onClick={openSearchModal}
-            className="flex flex-col items-center gap-1 rounded-2xl text-xs font-semibold text-white"
+            className="flex flex-col items-center gap-1 rounded-2xl px-3 py-2 text-xs font-semibold text-white"
           >
             <FaSearch className="text-base" />
             Search
@@ -85,29 +69,6 @@ export default function BottomNavbar({
             <FaFilter className="text-base" />
             Tags
           </button>
-          <div className="col-span-5 flex items-center justify-center gap-1 rounded-2xl text-xs font-semibold text-white sm:col-span-1 sm:pt-0">
-            <button
-              type="button"
-              onClick={decreaseTextScale}
-              className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 p-0 text-white"
-              aria-label="Decrease text size"
-              title="Decrease text size"
-            >
-              <FaMinus className="text-xs" />
-            </button>
-            <span className="min-w-[3.5rem] text-center text-[11px]">
-              Text {Math.round(textScale * 100)}%
-            </span>
-            <button
-              type="button"
-              onClick={increaseTextScale}
-              className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 p-0 text-white"
-              aria-label="Increase text size"
-              title="Increase text size"
-            >
-              <FaPlus className="text-xs" />
-            </button>
-          </div>
         </div>
       </nav>
     </div>

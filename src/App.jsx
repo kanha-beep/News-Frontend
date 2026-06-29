@@ -2,16 +2,13 @@ import { useEffect, useRef, useState } from "react";
 import axios from "axios";
 import BottomNavbar from "./components/BottomNavbar.jsx";
 import {
-  FaArrowUp,
   FaBookmark,
   FaCommentDots,
   FaEye,
   FaFilter,
   FaHeart,
-  FaMinus,
   FaMoon,
   FaNewspaper,
-  FaPlus,
   FaPencilAlt,
   FaRegBell,
   FaRegBookmark,
@@ -19,7 +16,6 @@ import {
   FaSearch,
   FaShareAlt,
   FaSun,
-  FaSyncAlt,
   FaTimes,
 } from "react-icons/fa";
 import TopNavbar from "./components/TopNavbar.jsx";
@@ -1694,6 +1690,7 @@ function App() {
       <div className="min-h-screen bg-slate-100 px-4 py-6 text-slate-900 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-7xl">
           <TopNavbar
+            authScreen={authScreen}
             setAuthScreen={setAuthScreen}
             setPendingFavoriteArticle={setPendingFavoriteArticle}
             setActiveView={setActiveView}
@@ -1923,110 +1920,27 @@ function App() {
           </div>
         </div>
       ) : null}
-      <div className="mx-auto max-w-7xl px-4 pb-40 pt-44 sm:px-6 sm:pb-28 sm:pt-36 lg:px-8">
-        <nav className="fixed inset-x-4 top-4 z-30 mx-auto max-w-7xl rounded-3xl bg-white/95 p-4 shadow-lg backdrop-blur sm:inset-x-6 lg:inset-x-8">
-          <div className="flex flex-wrap items-center gap-3">
-            <img
-              src="/lightning-news-logo.png"
-              alt="Lightning News logo"
-              className="h-14 w-14 rounded-full object-cover"
-            />
-            {/* <button
-              type="button"
-              onClick={() => handleViewChange("all")}
-              className={`rounded-full px-4 py-2 text-sm font-semibold ${
-                activeView === "all"
-                  ? "bg-slate-900 text-white"
-                  : "bg-slate-200 text-slate-700"
-              }`}
-            >
-              All News
-            </button> */}
-            {/* <button
-              type="button"
-              onClick={() => handleViewChange("favorites")}
-              className={`rounded-full px-4 py-2 text-sm font-semibold ${
-                activeView === "favorites"
-                  ? "bg-red-500 text-white"
-                  : "bg-slate-200 text-slate-700"
-              }`}
-            >
-              Favorites
-            </button> */}
-            {/* <button
-              type="button"
-              onClick={() => handleViewChange("alerts")}
-              className={`rounded-full px-4 py-2 text-sm font-semibold ${
-                activeView === "alerts"
-                  ? "bg-blue-600 text-white"
-                  : "bg-slate-200 text-slate-700"
-              }`}
-            >
-              Alerts
-            </button> */}
-            <button
-              type="button"
-              onClick={toggleThemeMode}
-              className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-200 text-sm font-semibold text-slate-700"
-              aria-label={isDarkMode ? "Light mode" : "Dark mode"}
-              title={isDarkMode ? "Light mode" : "Dark mode"}
-            >
-              {isDarkMode ? <FaSun /> : <FaMoon />}
-            </button>
-            <button
-              type="button"
-              onClick={handleRefresh}
-              className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-600 text-sm font-semibold text-white hover:bg-blue-700"
-              aria-label="Refresh"
-              title="Refresh"
-            >
-              <FaSyncAlt />
-            </button>
-            {pendingLatestNews ? (
-              <button
-                type="button"
-                onClick={handleApplyLatestNews}
-                className="rounded-full bg-emerald-600 px-3 py-2 text-sm font-semibold text-white hover:bg-emerald-700"
-                title="Show latest news"
-                aria-label="Show latest news"
-              >
-                <FaArrowUp />
-              </button>
-            ) : null}
-            <div className="mt-3 flex flex-wrap items-center gap-3">
-              {/* <p className="text-sm font-medium uppercase tracking-[0.25em] text-blue-600">
-              Kanha Gupta
-            </p> */}
-              <p className="rounded-full bg-slate-200 px-4 py-2 text-sm font-semibold text-slate-700">
-                Articles: {totalItems}
-              </p>
-              <a
-                href="https://wa.me/919131395725"
-                target="_blank"
-                rel="noreferrer"
-                className="text-sm text-red-600"
-              >
-                Contact
-              </a>
-              <button
-                type="button"
-                onClick={() => {
-                  if (token) {
-                    setToken("");
-                    setCurrentUser(null);
-                    setActiveView("all");
-                    setAlerts([]);
-                  } else {
-                    openAuthScreen("login");
-                  }
-                }}
-                className="rounded-full bg-slate-200 px-4 py-2 text-sm font-semibold text-slate-700"
-              >
-                {token ? "Sign Out" : "Sign In"}
-              </button>
-            </div>
-          </div>
-        </nav>
+      <div className="px-4 pt-44 sm:px-6 sm:pb-28 sm:pt-36 lg:px-8">
+        <TopNavbar
+          authScreen={authScreen}
+          setAuthScreen={setAuthScreen}
+          setPendingFavoriteArticle={setPendingFavoriteArticle}
+          setActiveView={setActiveView}
+          token={token}
+          isDarkMode={isDarkMode}
+          toggleThemeMode={toggleThemeMode}
+          handleRefresh={handleRefresh}
+          pendingLatestNews={pendingLatestNews}
+          handleApplyLatestNews={handleApplyLatestNews}
+          totalItems={totalItems}
+          textScale={textScale}
+          increaseTextScale={increaseTextScale}
+          decreaseTextScale={decreaseTextScale}
+          setToken={setToken}
+          setCurrentUser={setCurrentUser}
+          setAlerts={setAlerts}
+          openAuthScreen={openAuthScreen}
+        />
         <BottomNavbar
           handleViewChange={handleViewChange}
           activeView={activeView}
