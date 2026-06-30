@@ -6,13 +6,15 @@ import {
   FaRegBell,
   FaSearch,
 } from "react-icons/fa";
+import { useAppContext } from "../context/AppContext.jsx";
 
 export default function BottomNavbar({
   handleViewChange,
-  activeView,
   openSearchModal,
   openTagBrowser,
 }) {
+  const { activeView } = useAppContext();
+
   return (
     <div>
       <nav className="fixed inset-x-0 bottom-0 z-30 bg-slate-900 px-3 pt-3 pb-2 text-white">

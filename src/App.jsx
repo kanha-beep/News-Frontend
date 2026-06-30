@@ -1,7 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 import axios from "axios";
 import BottomNavbar from "./components/BottomNavbar.jsx";
-import NewsCard from "./components/NewsCard.jsx";
+import SearchField from "./components/SearchField.jsx";
+import {
+  AlertsView,
+  MobileTagMenu,
+  NewsFeedView,
+} from "./components/activeView/index.js";
+import { AppProvider } from "./context/AppContext.jsx";
 import {
   FaFilter,
   FaMoon,
@@ -12,216 +18,25 @@ import {
   FaTimes,
 } from "react-icons/fa";
 import TopNavbar from "./components/TopNavbar.jsx";
-
-const API_BASE_URL = import.meta.env.VITE_API_URI;
-const TOKEN_STORAGE_KEY = "newsAuthToken";
-const BLOG_APP_URL =
-  import.meta.env.VITE_BLOG_APP_URL ||
-  "https://blogs-frontend-omega.vercel.app";
-const BLOG_SYNC_API_URL = `${BLOG_APP_URL}/api/auth/sync-login`;
-const THEME_STORAGE_KEY = "newsThemeMode";
-const NEWS_CACHE_KEY = "newsFeedCache";
-const TAGS_CACHE_KEY = "newsTagsCache";
-const ARTICLE_SHARE_PARAM = "article";
-const VIEW_QUERY_PARAM = "view";
-const SUPPORTED_VIEWS = new Set(["all", "favorites", "alerts"]);
-
-const getSearchParams = () => {
-  try {
-    return new URLSearchParams(window.location.search);
-  } catch {
-    return new URLSearchParams();
-  }
-};
-
-const updateUrlParams = ({ article, view } = {}) => {
-  const params = getSearchParams();
-
-  if (article === null) {
-    params.delete(ARTICLE_SHARE_PARAM);
-  } else if (typeof article === "string") {
-    if (article.trim()) {
-      params.set(ARTICLE_SHARE_PARAM, article.trim());
-    } else {
-      params.delete(ARTICLE_SHARE_PARAM);
-    }
-  }
-
-  if (view === null) {
-    params.delete(VIEW_QUERY_PARAM);
-  } else if (typeof view === "string") {
-    if (view.trim() && view !== "all") {
-      params.set(VIEW_QUERY_PARAM, view);
-    } else {
-      params.delete(VIEW_QUERY_PARAM);
-    }
-  }
-
-  const search = params.toString();
-  const nextUrl = `${window.location.pathname}${search ? `?${search}` : ""}`;
-  window.history.replaceState({}, "", nextUrl);
-};
-
-const getInitialViewFromUrl = () => {
-  const view = getSearchParams().get(VIEW_QUERY_PARAM) || "";
-  return SUPPORTED_VIEWS.has(view) ? view : "all";
-};
-
-const parseSelectedTags = (value = "") =>
-  value
-    .split(",")
-    .map((item) => item.trim().toLowerCase())
-    .filter(Boolean);
-
-const readCachedJson = (key, fallback) => {
-  try {
-    const rawValue = localStorage.getItem(key);
-    return rawValue ? JSON.parse(rawValue) : fallback;
-  } catch {
-    return fallback;
-  }
-};
-
-const writeCachedJson = (key, value) => {
-  try {
-    localStorage.setItem(key, JSON.stringify(value));
-  } catch {
-    // Ignore local cache write failures.
-  }
-};
-
-const getNewsPayloadSignature = (payload) =>
-  JSON.stringify({
-    total: payload?.total || 0,
-    totalPages: payload?.totalPages || 1,
-    items: (payload?.items || []).map((item) => ({
-      link: item.link,
-      blogId: item.blogId || "",
-      title: item.title || "",
-      pubDate: item.pubDate || "",
-    })),
-  });
-
-const isDefaultFeedRequest = (view, tag, title, date) =>
-  view === "all" && !tag.trim() && !title.trim() && !date;
-
-const getCachedNewsPayload = () =>
-  readCachedJson(NEWS_CACHE_KEY, {
-    items: [],
-    total: 0,
-    totalPages: 1,
-  });
-
-const getCachedTags = () => readCachedJson(TAGS_CACHE_KEY, []);
-const getInitialSharedArticleLink = () => {
-  try {
-    return getSearchParams().get(ARTICLE_SHARE_PARAM) || "";
-  } catch {
-    return "";
-  }
-};
-
-const urlBase64ToUint8Array = (value) => {
-  const base64 = value.replace(/-/g, "+").replace(/_/g, "/");
-  const padding = "=".repeat((4 - (base64.length % 4)) % 4);
-  const normalized = `${base64}${padding}`;
-  const rawData = window.atob(normalized);
-  const outputArray = new Uint8Array(rawData.length);
-
-  for (let index = 0; index < rawData.length; index += 1) {
-    outputArray[index] = rawData.charCodeAt(index);
-  }
-
-  return outputArray;
-};
-
-function SearchField({
-  id,
-  label,
-  value,
-  onChange,
-  placeholder,
-  children = null,
-  onFocus,
-  onBlur,
-}) {
-  return (
-    <div>
-      <label
-        htmlFor={id}
-        className="mb-2 block text-sm font-semibold text-slate-700"
-      >
-        {label}
-      </label>
-      <div className="relative">
-        <input
-          id={id}
-          value={value}
-          onChange={onChange}
-          onFocus={onFocus}
-          onBlur={onBlur}
-          placeholder={placeholder}
-          className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none transition focus:border-blue-500"
-        />
-        {children}
-      </div>
-    </div>
-  );
-}
-
-const mountBlogSessionBridge = (blogToken) => {
-  if (!blogToken || typeof document === "undefined") return;
-
-  const iframe = document.createElement("iframe");
-  iframe.src = `${BLOG_APP_URL}/auth#newsBridgeToken=${encodeURIComponent(blogToken)}`;
-  iframe.style.display = "none";
-  iframe.setAttribute("aria-hidden", "true");
-  document.body.appendChild(iframe);
-
-  window.setTimeout(() => {
-    iframe.remove();
-  }, 4000);
-};
-
-const syncBlogSession = async ({ name, email, password }) => {
-  if (!email || !password) return { synced: false };
-
-  try {
-    const res = await axios.post(BLOG_SYNC_API_URL, { name, email, password });
-    const blogToken = res.data?.token || "";
-
-    if (blogToken) {
-      mountBlogSessionBridge(blogToken);
-      return { synced: true };
-    }
-
-    return { synced: false };
-  } catch (error) {
-    return {
-      synced: false,
-      message:
-        error?.response?.data?.message ||
-        "News login worked, but the blog session could not be prepared.",
-    };
-  }
-};
-
-function formatCommentTime(value) {
-  if (!value) return "Just now";
-
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return "Just now";
-  }
-
-  return date.toLocaleString("en-IN", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  });
-}
+import {
+  API_BASE_URL,
+  NEWS_CACHE_KEY,
+  TAGS_CACHE_KEY,
+  TOKEN_STORAGE_KEY,
+  THEME_STORAGE_KEY,
+  getCachedNewsPayload,
+  getCachedTags,
+  getInitialSharedArticleLink,
+  getInitialViewFromUrl,
+  getNewsPayloadSignature,
+  isDefaultFeedRequest,
+  parseSelectedTags,
+  updateUrlParams,
+  urlBase64ToUint8Array,
+  cacheJsonValue,
+  syncBlogSession,
+  formatCommentTime,
+} from "./components/appHelpers.js";
 
 function App() {
   const [news, setNews] = useState(() => getCachedNewsPayload().items || []);
@@ -304,6 +119,23 @@ function App() {
   const serviceWorkerRegistrationRef = useRef(null);
   const loadMoreRef = useRef(null);
 
+  const appContextValue = {
+    authScreen,
+    setAuthScreen,
+    pendingFavoriteArticle,
+    setPendingFavoriteArticle,
+    token,
+    setToken,
+    isDarkMode,
+    currentUser,
+    setCurrentUser,
+    activeView,
+    setActiveView,
+    alerts,
+    setAlerts,
+    textScale,
+  };
+
   const applyNewsPayload = (payload, { append = false } = {}) => {
     const incomingItems = payload?.items || [];
 
@@ -329,13 +161,13 @@ function App() {
   };
 
   const cacheDefaultFeed = (payload, tags = availableTags) => {
-    writeCachedJson(NEWS_CACHE_KEY, {
+    cacheJsonValue(NEWS_CACHE_KEY, {
       items: payload?.items || [],
       total: payload?.total || 0,
       totalPages: payload?.totalPages || 1,
       savedAt: new Date().toISOString(),
     });
-    writeCachedJson(TAGS_CACHE_KEY, tags || []);
+    cacheJsonValue(TAGS_CACHE_KEY, tags || []);
   };
 
   const updateLoadingProgress = (value) => {
@@ -1816,128 +1648,140 @@ function App() {
 
   if (authScreen) {
     return (
-      <div className="min-h-screen bg-slate-100 px-4 py-6 text-slate-900 sm:px-6 lg:px-8">
-        <div className="mx-auto max-w-7xl">
-          <TopNavbar
-            authScreen={authScreen}
-            setAuthScreen={setAuthScreen}
-            setPendingFavoriteArticle={setPendingFavoriteArticle}
-            setActiveView={setActiveView}
-            token={token}
-          />
+      <AppProvider value={appContextValue}>
+        <div className="min-h-screen bg-slate-100 px-4 py-6 text-slate-900 sm:px-6 lg:px-8">
+          <div className="mx-auto max-w-7xl">
+            <TopNavbar
+              toggleThemeMode={toggleThemeMode}
+              handleRefresh={handleRefresh}
+              pendingLatestNews={pendingLatestNews}
+              handleApplyLatestNews={handleApplyLatestNews}
+              totalItems={totalItems}
+              increaseTextScale={increaseTextScale}
+              decreaseTextScale={decreaseTextScale}
+              openAuthScreen={openAuthScreen}
+            />
 
-          <div className="mx-auto max-w-md rounded-2xl bg-white p-6 shadow-sm">
-            <p className="text-sm font-medium uppercase tracking-[0.25em] text-blue-600">
-              {authScreen === "register" ? "Create Account" : "Sign In"}
-            </p>
-            <h2 className="mt-2 text-3xl font-bold text-slate-900">
-              {authScreen === "register"
-                ? "Save your favorite news"
-                : "Access your favorites"}
-            </h2>
-            <p className="mt-2 text-sm text-slate-500">
-              {authScreen === "register"
-                ? "Create an account to keep favorite articles in your dashboard."
-                : "Sign in to continue with your saved favorites."}
-            </p>
+            <div className="mx-auto max-w-md rounded-2xl bg-white p-6 shadow-sm">
+              <p className="text-sm font-medium uppercase tracking-[0.25em] text-blue-600">
+                {authScreen === "register" ? "Create Account" : "Sign In"}
+              </p>
+              <h2 className="mt-2 text-3xl font-bold text-slate-900">
+                {authScreen === "register"
+                  ? "Save your favorite news"
+                  : "Access your favorites"}
+              </h2>
+              <p className="mt-2 text-sm text-slate-500">
+                {authScreen === "register"
+                  ? "Create an account to keep favorite articles in your dashboard."
+                  : "Sign in to continue with your saved favorites."}
+              </p>
 
-            <form onSubmit={handleAuthSubmit} className="mt-6 space-y-4">
-              {authScreen === "register" ? (
+              <form onSubmit={handleAuthSubmit} className="mt-6 space-y-4">
+                {authScreen === "register" ? (
+                  <div>
+                    <label className="mb-2 block text-sm font-semibold text-slate-700">
+                      Name
+                    </label>
+                    <input
+                      value={authForm.name}
+                      onChange={(e) =>
+                        setAuthForm((prev) => ({
+                          ...prev,
+                          name: e.target.value,
+                        }))
+                      }
+                      className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none transition focus:border-blue-500"
+                      placeholder="Your name"
+                    />
+                  </div>
+                ) : null}
+
                 <div>
                   <label className="mb-2 block text-sm font-semibold text-slate-700">
-                    Name
+                    Email
                   </label>
                   <input
-                    value={authForm.name}
+                    type="email"
+                    value={authForm.email}
                     onChange={(e) =>
-                      setAuthForm((prev) => ({ ...prev, name: e.target.value }))
+                      setAuthForm((prev) => ({
+                        ...prev,
+                        email: e.target.value,
+                      }))
                     }
                     className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none transition focus:border-blue-500"
-                    placeholder="Your name"
+                    placeholder="you@example.com"
+                    required
                   />
                 </div>
-              ) : null}
 
-              <div>
-                <label className="mb-2 block text-sm font-semibold text-slate-700">
-                  Email
-                </label>
-                <input
-                  type="email"
-                  value={authForm.email}
-                  onChange={(e) =>
-                    setAuthForm((prev) => ({ ...prev, email: e.target.value }))
-                  }
-                  className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none transition focus:border-blue-500"
-                  placeholder="you@example.com"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="mb-2 block text-sm font-semibold text-slate-700">
-                  Password
-                </label>
-                <input
-                  type="password"
-                  value={authForm.password}
-                  onChange={(e) =>
-                    setAuthForm((prev) => ({
-                      ...prev,
-                      password: e.target.value,
-                    }))
-                  }
-                  className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none transition focus:border-blue-500"
-                  placeholder="Minimum 6 characters"
-                  required
-                />
-              </div>
-
-              {error ? (
-                <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-                  {error}
+                <div>
+                  <label className="mb-2 block text-sm font-semibold text-slate-700">
+                    Password
+                  </label>
+                  <input
+                    type="password"
+                    value={authForm.password}
+                    onChange={(e) =>
+                      setAuthForm((prev) => ({
+                        ...prev,
+                        password: e.target.value,
+                      }))
+                    }
+                    className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none transition focus:border-blue-500"
+                    placeholder="Minimum 6 characters"
+                    required
+                  />
                 </div>
-              ) : null}
 
-              <button
-                type="submit"
-                disabled={authSubmitting}
-                className="w-full rounded-xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {authSubmitting
-                  ? "Please wait..."
-                  : authScreen === "register"
-                    ? "Create Account"
-                    : "Sign In"}
-              </button>
-            </form>
+                {error ? (
+                  <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                    {error}
+                  </div>
+                ) : null}
 
-            <div className="mt-4 flex items-center justify-between gap-3">
-              <p className="text-sm text-slate-500">
-                {authScreen === "register"
-                  ? "Already have an account?"
-                  : "Need a new account?"}
-              </p>
-              <button
-                type="button"
-                onClick={() =>
-                  setAuthScreen((prev) =>
-                    prev === "register" ? "login" : "register",
-                  )
-                }
-                className="rounded-full bg-slate-200 px-4 py-2 text-sm font-semibold text-slate-700"
-              >
-                {authScreen === "register" ? "SignIn" : "Register"}
-              </button>
+                <button
+                  type="submit"
+                  disabled={authSubmitting}
+                  className="w-full rounded-xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {authSubmitting
+                    ? "Please wait..."
+                    : authScreen === "register"
+                      ? "Create Account"
+                      : "Sign In"}
+                </button>
+              </form>
+
+              <div className="mt-4 flex items-center justify-between gap-3">
+                <p className="text-sm text-slate-500">
+                  {authScreen === "register"
+                    ? "Already have an account?"
+                    : "Need a new account?"}
+                </p>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setAuthScreen((prev) =>
+                      prev === "register" ? "login" : "register",
+                    )
+                  }
+                  className="rounded-full bg-slate-200 px-4 py-2 text-sm font-semibold text-slate-700"
+                >
+                  {authScreen === "register" ? "SignIn" : "Register"}
+                </button>
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      </AppProvider>
     );
   }
 
   return (
-    <div className="min-h-screen bg-slate-100 text-slate-900">
+    <AppProvider value={appContextValue}>
+      <div className="min-h-screen bg-slate-100 text-slate-900">
       {toast.show ? (
         <div className="fixed right-4 top-4 z-50">
           <div
@@ -2051,99 +1895,31 @@ function App() {
       ) : null}
       <div className="px-4 pt-44 sm:px-6 sm:pb-28 sm:pt-36 lg:px-8">
         <TopNavbar
-          authScreen={authScreen}
-          setAuthScreen={setAuthScreen}
-          setPendingFavoriteArticle={setPendingFavoriteArticle}
-          setActiveView={setActiveView}
-          token={token}
-          isDarkMode={isDarkMode}
           toggleThemeMode={toggleThemeMode}
           handleRefresh={handleRefresh}
           pendingLatestNews={pendingLatestNews}
           handleApplyLatestNews={handleApplyLatestNews}
           totalItems={totalItems}
-          textScale={textScale}
           increaseTextScale={increaseTextScale}
           decreaseTextScale={decreaseTextScale}
-          setToken={setToken}
-          setCurrentUser={setCurrentUser}
-          setAlerts={setAlerts}
           openAuthScreen={openAuthScreen}
         />
         <BottomNavbar
           handleViewChange={handleViewChange}
-          activeView={activeView}
           openSearchModal={openSearchModal}
           openTagBrowser={openTagBrowser}
-          textScale={textScale}
-          increaseTextScale={increaseTextScale}
-          decreaseTextScale={decreaseTextScale}
         />
 
         {activeView !== "alerts" && isMobileTagMenuOpen ? (
-          <div className="fixed inset-0 z-40 flex items-center justify-center bg-slate-900/50 px-4">
-            <div className="max-h-[80vh] w-full max-w-sm overflow-y-auto rounded-2xl bg-white p-4 shadow-xl">
-              <div className="mb-4 flex items-start justify-between gap-4">
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.24em] text-blue-600">
-                    Browse Tags
-                  </p>
-                  <h2 className="mt-2 text-lg font-bold text-slate-900">
-                    Filter by category
-                  </h2>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setIsMobileTagMenuOpen(false)}
-                  className="rounded-full bg-slate-200 px-3 py-2 text-sm font-semibold text-slate-700"
-                >
-                  Close
-                </button>
-              </div>
-
-              <div className="mb-4">
-                <input
-                  value={tagBrowserQuery}
-                  onChange={(e) => setTagBrowserQuery(e.target.value)}
-                  placeholder="Search tags..."
-                  className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none transition focus:border-blue-500"
-                />
-              </div>
-
-              <div className="flex flex-col gap-2">
-                <button
-                  type="button"
-                  onClick={() => applyTagQuery("")}
-                  className={`w-full rounded-xl px-4 py-3 text-left text-sm font-semibold transition ${
-                    selectedTags.length
-                      ? "bg-slate-100 text-slate-700 hover:bg-slate-200"
-                      : "bg-slate-900 text-white"
-                  }`}
-                >
-                  All Tags
-                </button>
-
-                {filteredBrowserTags.map((tag) => {
-                  const isActive = selectedTagSet.has(tag.toLowerCase());
-
-                  return (
-                    <button
-                      key={`mobile-${tag}`}
-                      type="button"
-                      onClick={() => applyTagQuery(tag)}
-                      className={`w-full rounded-xl px-4 py-3 text-left text-sm font-semibold transition ${
-                        isActive
-                          ? "bg-blue-600 text-white"
-                          : "bg-slate-100 text-slate-700 hover:bg-slate-200"
-                      }`}
-                    >
-                      #{tag}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
+          <MobileTagMenu
+            setIsMobileTagMenuOpen={setIsMobileTagMenuOpen}
+            tagBrowserQuery={tagBrowserQuery}
+            setTagBrowserQuery={setTagBrowserQuery}
+            applyTagQuery={applyTagQuery}
+            selectedTags={selectedTags}
+            filteredBrowserTags={filteredBrowserTags}
+            selectedTagSet={selectedTagSet}
+          />
         ) : null}
 
         {activeView !== "alerts" && isSearchModalOpen ? (
@@ -2270,7 +2046,7 @@ function App() {
 
           <div className="min-w-0 flex-1">
             {activeView === "alerts" ? null : (
-              <div className="mt-5 bg-black p-4">
+              <div className="mt-5">
                 <div className="max-w-3xl">
                   {/*
                 <div className="flex items-center gap-2">
@@ -2389,204 +2165,23 @@ function App() {
                 ) : null}
 
                 {activeView === "alerts" ? (
-                  <div className="space-y-6">
-                    <div className="rounded-2xl bg-white p-5 shadow-sm">
-                      <p className="text-xs font-semibold uppercase tracking-[0.24em] text-blue-600">
-                        Push Notifications
-                      </p>
-                      <h2 className="mt-2 text-xl font-bold text-slate-900">
-                        Saved alert delivery
-                      </h2>
-                      <p className="mt-2 text-sm text-slate-500">
-                        {pushState.supported
-                          ? pushState.enabled
-                            ? "Notifications are enabled for this browser."
-                            : pushState.permission === "denied"
-                              ? "Notifications are blocked in browser settings."
-                              : "Enable browser notifications to receive saved alert matches."
-                          : "This browser does not support web push notifications."}
-                      </p>
-                      <div className="mt-4 flex flex-wrap gap-3">
-                        <button
-                          type="button"
-                          onClick={
-                            pushState.enabled
-                              ? handleDisablePush
-                              : handleEnablePush
-                          }
-                          disabled={
-                            !pushState.supported ||
-                            pushState.loading ||
-                            pushState.busy
-                          }
-                          className={`rounded-xl px-4 py-3 text-sm font-semibold ${
-                            pushState.enabled
-                              ? "bg-slate-900 text-white"
-                              : "bg-blue-600 text-white"
-                          } disabled:cursor-not-allowed disabled:opacity-50`}
-                        >
-                          {pushState.busy
-                            ? "Working..."
-                            : pushState.enabled
-                              ? "Disable Push"
-                              : "Enable Push"}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => loadPushStatus(token)}
-                          disabled={pushState.busy}
-                          className="rounded-xl bg-slate-200 px-4 py-3 text-sm font-semibold text-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
-                        >
-                          Refresh Status
-                        </button>
-                      </div>
-                    </div>
-
-                    <div className="rounded-2xl bg-white p-5 shadow-sm">
-                      <p className="text-xs font-semibold uppercase tracking-[0.24em] text-blue-600">
-                        Saved Alerts
-                      </p>
-                      <h2 className="mt-2 text-xl font-bold text-slate-900">
-                        Create a topic alert
-                      </h2>
-                      <form
-                        onSubmit={handleCreateAlert}
-                        className="mt-4 grid gap-3 md:grid-cols-[minmax(0,1fr)_180px_auto]"
-                      >
-                        <input
-                          value={alertForm.topic}
-                          onChange={(e) =>
-                            setAlertForm((prev) => ({
-                              ...prev,
-                              topic: e.target.value,
-                            }))
-                          }
-                          placeholder="Example: kerala rain"
-                          className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none transition focus:border-blue-500"
-                        />
-                        <select
-                          value={alertForm.type}
-                          onChange={(e) =>
-                            setAlertForm((prev) => ({
-                              ...prev,
-                              type: e.target.value,
-                            }))
-                          }
-                          className="rounded-xl border border-slate-300 px-4 py-3 outline-none transition focus:border-blue-500"
-                        >
-                          <option value="topic">Topic alert</option>
-                          <option value="breaking">Breaking alert</option>
-                        </select>
-                        <button
-                          type="submit"
-                          disabled={alertSubmitting}
-                          className="rounded-xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
-                        >
-                          {alertSubmitting ? "Saving..." : "Create Alert"}
-                        </button>
-                      </form>
-                    </div>
-
-                    {alerts.length === 0 ? (
-                      <div className="rounded-2xl bg-white p-10 text-center shadow-sm">
-                        <p className="text-lg font-semibold text-slate-700">
-                          No alerts yet.
-                        </p>
-                        <p className="mt-2 text-sm text-slate-500">
-                          Create a topic alert and this browser can notify you
-                          when matching stories arrive.
-                        </p>
-                      </div>
-                    ) : (
-                      <div className="grid gap-6 md:grid-cols-2">
-                        {alerts.map((alert) => (
-                          <article
-                            key={alert._id}
-                            className="rounded-2xl bg-white p-5 shadow-sm"
-                          >
-                            <div className="flex items-start justify-between gap-3">
-                              <div>
-                                <p className="text-xs font-semibold uppercase tracking-[0.24em] text-blue-600">
-                                  {alert.type}
-                                </p>
-                                <h3 className="mt-2 text-lg font-bold text-slate-900">
-                                  {alert.topic}
-                                </h3>
-                              </div>
-                              <span
-                                className={`rounded-full px-3 py-1 text-xs font-semibold ${
-                                  alert.enabled
-                                    ? "bg-emerald-100 text-emerald-700"
-                                    : "bg-slate-200 text-slate-600"
-                                }`}
-                              >
-                                {alert.enabled ? "Active" : "Paused"}
-                              </span>
-                            </div>
-
-                            <div className="mt-4 space-y-2 text-sm text-slate-600">
-                              <p>
-                                {alert.matchCount || 0} recent match
-                                {(alert.matchCount || 0) === 1 ? "" : "es"}
-                              </p>
-                              <p>
-                                Latest:{" "}
-                                {alert.latestMatch?.title ||
-                                  "No matching story yet"}
-                              </p>
-                            </div>
-
-                            {alert.matches?.length ? (
-                              <div className="mt-4 space-y-2">
-                                {alert.matches.map((match) => (
-                                  <button
-                                    key={`${alert._id}-${match.link}`}
-                                    type="button"
-                                    onClick={() =>
-                                      handleReadArticle(match.link)
-                                    }
-                                    className="block w-full rounded-xl bg-slate-50 px-4 py-3 text-left text-sm text-slate-700 transition hover:bg-slate-100"
-                                  >
-                                    {match.title}
-                                  </button>
-                                ))}
-                              </div>
-                            ) : null}
-
-                            <div className="mt-4 flex flex-wrap gap-3">
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  handleToggleAlert(alert._id, !alert.enabled)
-                                }
-                                className="rounded-xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white"
-                              >
-                                {alert.enabled ? "Pause" : "Enable"}
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => handleDeleteAlert(alert._id)}
-                                className="rounded-xl bg-slate-200 px-4 py-3 text-sm font-semibold text-slate-700"
-                              >
-                                Delete
-                              </button>
-                            </div>
-                          </article>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                ) : news.length === 0 ? (
-                  <div className="rounded-2xl bg-white p-10 text-center shadow-sm">
-                    <p className="text-lg font-semibold text-slate-700">
-                      No articles found.
-                    </p>
-                    <p className="mt-2 text-sm text-slate-500">
-                      Try another tag, date, month, or switch back to all news.
-                    </p>
-                  </div>
+                  <AlertsView
+                    pushState={pushState}
+                    handleDisablePush={handleDisablePush}
+                    handleEnablePush={handleEnablePush}
+                    loadPushStatus={loadPushStatus}
+                    token={token}
+                    alertForm={alertForm}
+                    setAlertForm={setAlertForm}
+                    handleCreateAlert={handleCreateAlert}
+                    alertSubmitting={alertSubmitting}
+                    alerts={alerts}
+                    handleReadArticle={handleReadArticle}
+                    handleToggleAlert={handleToggleAlert}
+                    handleDeleteAlert={handleDeleteAlert}
+                  />
                 ) : (
-                  <NewsCard
+                  <NewsFeedView
                     news={news}
                     applyTagQuery={applyTagQuery}
                     handleToggleFavorite={handleToggleFavorite}
@@ -2610,51 +2205,16 @@ function App() {
                     refreshing={refreshing}
                     loading={loading}
                     isLoadingMore={isLoadingMore}
+                    totalItems={totalItems}
                   />
                 )}
-
-                {activeView !== "alerts" && totalItems > 0 ? (
-                  <div className="mt-8 flex flex-col items-center justify-between gap-4 rounded-2xl bg-white p-4 shadow-sm sm:flex-row">
-                    <p className="text-sm text-slate-600">
-                      Total {totalItems} articles
-                    </p>
-                    <div className="flex items-center gap-3">
-                      {/*
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setCurrentPage((page) => Math.max(1, page - 1))
-                        }
-                        disabled={currentPage === 1}
-                        className="rounded-xl bg-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
-                      >
-                        Previous
-                      </button>
-                      <p className="text-sm font-medium text-slate-700">
-                        Page {currentPage} of {totalPages}
-                      </p>
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setCurrentPage((page) =>
-                            Math.min(totalPages, page + 1),
-                          )
-                        }
-                        disabled={currentPage === totalPages}
-                        className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
-                      >
-                        Next
-                      </button>
-                      */}
-                    </div>
-                  </div>
-                ) : null}
               </>
             )}
-          </div>
         </div>
       </div>
-    </div>
+      </div>
+      </div>
+    </AppProvider>
   );
 }
 

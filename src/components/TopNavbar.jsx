@@ -6,27 +6,32 @@ import {
   FaSun,
   FaSyncAlt,
 } from "react-icons/fa";
+import { useAppContext } from "../context/AppContext.jsx";
 
 export default function TopNavbar({
-  authScreen,
-  setAuthScreen,
-  setPendingFavoriteArticle,
-  setActiveView,
-  token,
-  isDarkMode,
   toggleThemeMode,
   handleRefresh,
   pendingLatestNews,
   handleApplyLatestNews,
   totalItems,
-  textScale,
   increaseTextScale,
   decreaseTextScale,
-  setToken,
-  setCurrentUser,
-  setAlerts,
   openAuthScreen,
 }) {
+  const {
+    authScreen,
+    setAuthScreen,
+    pendingFavoriteArticle,
+    setPendingFavoriteArticle,
+    setActiveView,
+    token,
+    isDarkMode,
+    textScale,
+    setToken,
+    setCurrentUser,
+    setAlerts,
+  } = useAppContext();
+
   return authScreen ? (
     <nav className="mb-6 grid gap-5 rounded-2xl bg-white p-4 shadow-sm sm:grid-cols-[auto_1fr_auto] sm:items-center">
       <div className="flex justify-start">
@@ -59,7 +64,9 @@ export default function TopNavbar({
           type="button"
           onClick={() => {
             setAuthScreen(null);
-            setPendingFavoriteArticle(null);
+            if (pendingFavoriteArticle) {
+              setPendingFavoriteArticle(null);
+            }
             if (!token) {
               setActiveView("all");
             }
