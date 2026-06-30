@@ -72,8 +72,8 @@ export default function TopNavbar({
     </nav>
   ) : (
     <nav className="fixed inset-x-0 top-0 z-30 overflow-x-auto bg-white p-4">
-      <div className="flex min-w-max flex-nowrap items-center gap-4">
-        <div>
+      <div className="flex min-w-max flex-nowrap items-start gap-4">
+        <div className="shrink-0">
           <img
             src="/lightning-news-logo.png"
             alt="Lightning News logo"
@@ -88,7 +88,7 @@ export default function TopNavbar({
             Contact
           </a>
         </div>
-        <div className="flex gap-3 flex-col">
+        <div className="flex shrink-0 flex-col gap-3">
           <button
             type="button"
             onClick={toggleThemeMode}
@@ -120,9 +120,9 @@ export default function TopNavbar({
           </button>
         ) : null}
 
-        <div className="flex flex-nowrap items-center gap-3">
+        <div className="ml-auto flex shrink-0 flex-col items-end gap-3">
           {/* <p className="rounded-sm p-1 text-sm font-semibold">{totalItems}</p> */}
-          <div>
+          <div className="flex flex-col items-end gap-3">
             <div className="flex items-center justify-center gap-1 rounded-2xl bg-slate-900 px-2 py-1 text-xs font-semibold text-white">
               <button
                 type="button"
