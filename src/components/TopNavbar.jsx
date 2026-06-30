@@ -121,7 +121,7 @@ export default function TopNavbar({
         ) : null}
 
         <div className="flex flex-nowrap items-center gap-3">
-          <p className="rounded-sm p-1 text-sm font-semibold">{totalItems}</p>
+          {/* <p className="rounded-sm p-1 text-sm font-semibold">{totalItems}</p> */}
           <div>
             <div className="flex items-center justify-center gap-1 rounded-2xl bg-slate-900 px-2 py-1 text-xs font-semibold text-white">
               <button
