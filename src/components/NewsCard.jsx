@@ -1,4 +1,16 @@
 import React from "react";
+import {
+  FaBookmark,
+  FaCommentDots,
+  FaEye,
+  FaHeart,
+  FaPencilAlt,
+  FaRegBookmark,
+  FaRegHeart,
+  FaRegThumbsDown,
+  FaShareAlt,
+  FaThumbsDown,
+} from "react-icons/fa";
 
 export default function NewsCard({
   news,
@@ -9,8 +21,11 @@ export default function NewsCard({
   handleCreateBlog,
   handleReadBlog,
   handleToggleLike,
+  handleToggleDislike,
   pendingLikeLinks,
   likeBurstLinks,
+  pendingDislikeLinks,
+  dislikeBurstLinks,
   handleCommentClick,
   handleShareArticle,
   activeView,
@@ -119,11 +134,14 @@ export default function NewsCard({
                   {article.blogId ? "Read Blog" : "Write your experience"}
                 </button>
               </div>
-              <div className="mt-6 grid grid-cols-3 gap-3">
+              <div className="mt-6 grid grid-cols-4 gap-3">
                 <button
                   type="button"
                   onClick={() => handleToggleLike(article)}
-                  disabled={Boolean(pendingLikeLinks[article.link])}
+                  disabled={
+                    Boolean(pendingLikeLinks[article.link]) ||
+                    Boolean(pendingDislikeLinks[article.link])
+                  }
                   className={`flex items-center justify-center gap-2 rounded-2xl border border-white/60 bg-white/70 px-3 py-3 text-xl font-semibold backdrop-blur-sm transition duration-300 hover:bg-white ${
                     article.isLiked
                       ? "text-red-600"
@@ -142,6 +160,32 @@ export default function NewsCard({
                     {article.likeCount || 0}
                   </span>
                   {article.isLiked ? <FaHeart /> : <FaRegHeart />}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleToggleDislike(article)}
+                  disabled={
+                    Boolean(pendingDislikeLinks[article.link]) ||
+                    Boolean(pendingLikeLinks[article.link])
+                  }
+                  className={`flex items-center justify-center gap-2 rounded-2xl border border-white/60 bg-white/70 px-3 py-3 text-xl font-semibold backdrop-blur-sm transition duration-300 hover:bg-white ${
+                    article.isDisliked
+                      ? "text-blue-600"
+                      : "text-slate-700 hover:text-slate-900"
+                  } ${
+                    pendingDislikeLinks[article.link]
+                      ? "cursor-not-allowed opacity-80"
+                      : ""
+                  } ${
+                    dislikeBurstLinks[article.link]
+                      ? "scale-110 shadow-lg shadow-blue-100"
+                      : "scale-100"
+                  }`}
+                >
+                  <span className="text-sm font-semibold leading-none">
+                    {article.dislikeCount || 0}
+                  </span>
+                  {article.isDisliked ? <FaThumbsDown /> : <FaRegThumbsDown />}
                 </button>
                 <button
                   type="button"

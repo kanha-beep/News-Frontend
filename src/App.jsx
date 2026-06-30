@@ -1,20 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 import axios from "axios";
 import BottomNavbar from "./components/BottomNavbar.jsx";
+import NewsCard from "./components/NewsCard.jsx";
 import {
-  FaBookmark,
-  FaCommentDots,
-  FaEye,
   FaFilter,
-  FaHeart,
   FaMoon,
   FaNewspaper,
-  FaPencilAlt,
   FaRegBell,
-  FaRegBookmark,
-  FaRegHeart,
   FaSearch,
-  FaShareAlt,
   FaSun,
   FaTimes,
 } from "react-icons/fa";
@@ -282,6 +275,8 @@ function App() {
   );
   const [pendingLikeLinks, setPendingLikeLinks] = useState({});
   const [likeBurstLinks, setLikeBurstLinks] = useState({});
+  const [pendingDislikeLinks, setPendingDislikeLinks] = useState({});
+  const [dislikeBurstLinks, setDislikeBurstLinks] = useState({});
   const [commentModalArticle, setCommentModalArticle] = useState(null);
   const [comments, setComments] = useState([]);
   const [commentsLoading, setCommentsLoading] = useState(false);
@@ -304,6 +299,7 @@ function App() {
   const loadingAnimationRef = useRef(null);
   const hasBootstrappedRef = useRef(false);
   const likeBurstTimeoutsRef = useRef({});
+  const dislikeBurstTimeoutsRef = useRef({});
   const visitTrackedRef = useRef(false);
   const serviceWorkerRegistrationRef = useRef(null);
   const loadMoreRef = useRef(null);
@@ -783,6 +779,9 @@ function App() {
       Object.values(likeBurstTimeoutsRef.current).forEach((timeoutId) => {
         clearTimeout(timeoutId);
       });
+      Object.values(dislikeBurstTimeoutsRef.current).forEach((timeoutId) => {
+        clearTimeout(timeoutId);
+      });
     };
   }, []);
 
@@ -1149,11 +1148,12 @@ function App() {
       return;
     }
 
-    if (pendingLikeLinks[article.link]) {
+    if (pendingLikeLinks[article.link] || pendingDislikeLinks[article.link]) {
       return;
     }
 
     const nextLikedState = !article.isLiked;
+    const nextDislikedState = nextLikedState ? false : article.isDisliked;
     setPendingLikeLinks((prev) => ({ ...prev, [article.link]: true }));
     setLikeBurstLinks((prev) => ({ ...prev, [article.link]: true }));
     setNews((prev) =>
@@ -1162,10 +1162,15 @@ function App() {
           ? {
               ...item,
               isLiked: nextLikedState,
+              isDisliked: nextDislikedState,
               likeCount: Math.max(
                 0,
                 (item.likeCount || 0) + (nextLikedState ? 1 : -1),
               ),
+              dislikeCount:
+                article.isDisliked && nextLikedState
+                  ? Math.max(0, (item.dislikeCount || 0) - 1)
+                  : item.dislikeCount || 0,
             }
           : item,
       ),
@@ -1196,6 +1201,7 @@ function App() {
       );
 
       const isLiked = Boolean(res.data?.liked);
+      const isDisliked = Boolean(res.data?.disliked);
       setCurrentUser(res.data?.user || currentUser);
       setNews((prev) =>
         prev.map((item) =>
@@ -1203,10 +1209,18 @@ function App() {
             ? {
                 ...item,
                 isLiked,
+                isDisliked,
                 likeCount:
                   isLiked === nextLikedState
                     ? item.likeCount || 0
                     : Math.max(0, (item.likeCount || 0) + (isLiked ? 1 : -1)),
+                dislikeCount:
+                  isDisliked === nextDislikedState
+                    ? item.dislikeCount || 0
+                    : Math.max(
+                        0,
+                        (item.dislikeCount || 0) + (isDisliked ? 1 : -1),
+                      ),
               }
             : item,
         ),
@@ -1218,7 +1232,9 @@ function App() {
             ? {
                 ...item,
                 likeCount: article.likeCount || 0,
+                dislikeCount: article.dislikeCount || 0,
                 isLiked: article.isLiked,
+                isDisliked: article.isDisliked,
               }
             : item,
         ),
@@ -1230,6 +1246,119 @@ function App() {
       );
     } finally {
       setPendingLikeLinks((prev) => ({ ...prev, [article.link]: false }));
+    }
+  };
+
+  const handleToggleDislike = async (article) => {
+    if (!token) {
+      openAuthScreen("login");
+      setToast({
+        show: true,
+        message: "Sign in to dislike this article",
+        type: "info",
+      });
+      return;
+    }
+
+    if (pendingDislikeLinks[article.link] || pendingLikeLinks[article.link]) {
+      return;
+    }
+
+    const nextDislikedState = !article.isDisliked;
+    const nextLikedState = nextDislikedState ? false : article.isLiked;
+    setPendingDislikeLinks((prev) => ({ ...prev, [article.link]: true }));
+    setDislikeBurstLinks((prev) => ({ ...prev, [article.link]: true }));
+    setNews((prev) =>
+      prev.map((item) =>
+        item.link === article.link
+          ? {
+              ...item,
+              isDisliked: nextDislikedState,
+              isLiked: nextLikedState,
+              dislikeCount: Math.max(
+                0,
+                (item.dislikeCount || 0) + (nextDislikedState ? 1 : -1),
+              ),
+              likeCount:
+                article.isLiked && nextDislikedState
+                  ? Math.max(0, (item.likeCount || 0) - 1)
+                  : item.likeCount || 0,
+            }
+          : item,
+      ),
+    );
+
+    if (dislikeBurstTimeoutsRef.current[article.link]) {
+      clearTimeout(dislikeBurstTimeoutsRef.current[article.link]);
+    }
+    dislikeBurstTimeoutsRef.current[article.link] = setTimeout(() => {
+      setDislikeBurstLinks((prev) => ({ ...prev, [article.link]: false }));
+      delete dislikeBurstTimeoutsRef.current[article.link];
+    }, 380);
+
+    try {
+      const res = await axios.post(
+        `${API_BASE_URL}/api/dislikes/toggle`,
+        {
+          link: article.link,
+          title: article.title,
+          description: article.description,
+          pubDate: article.pubDate,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      );
+
+      const isLiked = Boolean(res.data?.liked);
+      const isDisliked = Boolean(res.data?.disliked);
+      setCurrentUser(res.data?.user || currentUser);
+      setNews((prev) =>
+        prev.map((item) =>
+          item.link === article.link
+            ? {
+                ...item,
+                isLiked,
+                isDisliked,
+                likeCount:
+                  isLiked === nextLikedState
+                    ? item.likeCount || 0
+                    : Math.max(0, (item.likeCount || 0) + (isLiked ? 1 : -1)),
+                dislikeCount:
+                  isDisliked === nextDislikedState
+                    ? item.dislikeCount || 0
+                    : Math.max(
+                        0,
+                        (item.dislikeCount || 0) +
+                          (isDisliked ? 1 : -1),
+                      ),
+              }
+            : item,
+        ),
+      );
+    } catch (err) {
+      setNews((prev) =>
+        prev.map((item) =>
+          item.link === article.link
+            ? {
+                ...item,
+                likeCount: article.likeCount || 0,
+                dislikeCount: article.dislikeCount || 0,
+                isLiked: article.isLiked,
+                isDisliked: article.isDisliked,
+              }
+            : item,
+        ),
+      );
+      setError(
+        err?.response?.data?.message ||
+          err?.response?.data?.error ||
+          "Unable to update dislike.",
+      );
+    } finally {
+      setPendingDislikeLinks((prev) => ({ ...prev, [article.link]: false }));
     }
   };
 
@@ -2457,167 +2586,31 @@ function App() {
                     </p>
                   </div>
                 ) : (
-                  <div className="mx-auto grid max-w-3xl gap-3">
-                    {news.map((article) => (
-                      <article
-                        key={article._id || article.link}
-                        className="flex min-h-[1rem] flex-col rounded-[1rem] bg-white p-[15] transition hover:-translate-y-1 sm:min-h-[60vh] sm:p-8"
-                      >
-                        <div className="mb-4 flex items-start justify-between gap-3">
-                          <div className="flex flex-wrap gap-2">
-                            {(article.tags?.length
-                              ? article.tags
-                              : ["untagged"]
-                            ).map((tag) => (
-                              <button
-                                key={`${article.link}-${tag}`}
-                                type="button"
-                                onClick={() => applyTagQuery(tag)}
-                                className="rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700"
-                              >
-                                #{tag}
-                              </button>
-                            ))}
-                          </div>
-
-                          <button
-                            type="button"
-                            onClick={() => handleToggleFavorite(article)}
-                            className="rounded-full p-2 text-lg"
-                            aria-label={
-                              article.isFavorite
-                                ? "Remove favorite"
-                                : "Add favorite"
-                            }
-                          >
-                            {article.isFavorite ? (
-                              <FaBookmark className="text-red-500" />
-                            ) : (
-                              <FaRegBookmark className="text-slate-400 hover:text-red-500" />
-                            )}
-                          </button>
-                        </div>
-
-                        <p className="mb-3 text-sm font-semibold uppercase tracking-[0.2em] text-slate-400">
-                          {article.pubDate || "No publish date"}
-                        </p>
-
-                        <h2
-                          className="mb-5 font-bold leading-tight text-slate-900"
-                          style={{
-                            fontSize: `${3 * textScale}rem`,
-                            lineHeight: 1.1,
-                          }}
-                        >
-                          {article.title}
-                        </h2>
-
-                        <p
-                          className="line-clamp-6 text-slate-600"
-                          style={{
-                            fontSize: `${1.125 * textScale}rem`,
-                            lineHeight: 1.8,
-                          }}
-                        >
-                          {article.description || "No description available."}
-                        </p>
-
-                        <div className="mt-auto pt-5">
-                          <div className="grid grid-cols-3 gap-1">
-                            <button
-                              type="button"
-                              onClick={() => handleReadArticle(article.link)}
-                              className="flex items-center justify-center rounded-2xl border border-white/60 bg-white/70 p-3 text-2xl text-slate-900 backdrop-blur-sm transition hover:bg-white hover:text-slate-700"
-                              aria-label="Read article"
-                              title="Read article"
-                            >
-                              <FaEye />
-                            </button>
-
-                            <button
-                              type="button"
-                              onClick={() => handleCreateBlog(article)}
-                              className="flex items-center justify-center rounded-2xl border border-white/60 bg-white/70 p-3 text-2xl text-slate-900 backdrop-blur-sm transition hover:bg-white hover:text-slate-700"
-                              aria-label="Write your own experience"
-                              title="Write your own experience"
-                            >
-                              <FaPencilAlt />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() =>
-                                article.blogId
-                                  ? handleReadBlog(article.blogId)
-                                  : handleCreateBlog(article)
-                              }
-                              className="rounded-2xl border border-white/60 bg-white/70 px-3 py-3 text-sm font-semibold text-slate-900 backdrop-blur-sm transition hover:bg-white hover:text-slate-700"
-                            >
-                              {article.blogId
-                                ? "Read Blog"
-                                : "Write your experience"}
-                            </button>
-                          </div>
-                          <div className="mt-6 grid grid-cols-3 gap-3">
-                            <button
-                              type="button"
-                              onClick={() => handleToggleLike(article)}
-                              disabled={Boolean(pendingLikeLinks[article.link])}
-                              className={`flex items-center justify-center gap-2 rounded-2xl border border-white/60 bg-white/70 px-3 py-3 text-xl font-semibold backdrop-blur-sm transition duration-300 hover:bg-white ${
-                                article.isLiked
-                                  ? "text-red-600"
-                                  : "text-slate-700 hover:text-slate-900"
-                              } ${
-                                pendingLikeLinks[article.link]
-                                  ? "cursor-not-allowed opacity-80"
-                                  : ""
-                              } ${
-                                likeBurstLinks[article.link]
-                                  ? "scale-110 shadow-lg shadow-red-100"
-                                  : "scale-100"
-                              }`}
-                            >
-                              <span className="text-sm font-semibold leading-none">
-                                {article.likeCount || 0}
-                              </span>
-                              {article.isLiked ? <FaHeart /> : <FaRegHeart />}
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => handleCommentClick(article)}
-                              className="flex items-center justify-center gap-2 rounded-2xl border border-white/60 bg-white/70 px-3 py-3 text-xl font-semibold text-slate-900 backdrop-blur-sm transition hover:bg-white hover:text-slate-700"
-                            >
-                              <span className="text-xs font-semibold leading-none">
-                                {article.commentCount || 0}
-                              </span>
-
-                              <FaCommentDots />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => handleShareArticle(article)}
-                              className="flex items-center justify-center gap-2 rounded-2xl border border-white/60 bg-white/70 px-3 py-3 text-xl font-semibold text-slate-900 backdrop-blur-sm transition hover:bg-white hover:text-slate-700"
-                              aria-label="Share article"
-                              title="Share article"
-                            >
-                              <FaShareAlt />
-                            </button>
-                          </div>
-                        </div>
-                      </article>
-                    ))}
-                    {activeView !== "alerts" &&
-                    !sharedArticleLink &&
-                    currentPage < totalPages ? (
-                      <div
-                        ref={loadMoreRef}
-                        className="flex min-h-24 items-center justify-center rounded-3xl bg-white/70 p-6 text-sm font-semibold text-slate-500"
-                      >
-                        {refreshing || loading || isLoadingMore
-                          ? "Loading articles..."
-                          : "Loading more articles..."}
-                      </div>
-                    ) : null}
-                  </div>
+                  <NewsCard
+                    news={news}
+                    applyTagQuery={applyTagQuery}
+                    handleToggleFavorite={handleToggleFavorite}
+                    textScale={textScale}
+                    handleReadArticle={handleReadArticle}
+                    handleCreateBlog={handleCreateBlog}
+                    handleReadBlog={handleReadBlog}
+                    handleToggleLike={handleToggleLike}
+                    handleToggleDislike={handleToggleDislike}
+                    pendingLikeLinks={pendingLikeLinks}
+                    likeBurstLinks={likeBurstLinks}
+                    pendingDislikeLinks={pendingDislikeLinks}
+                    dislikeBurstLinks={dislikeBurstLinks}
+                    handleCommentClick={handleCommentClick}
+                    handleShareArticle={handleShareArticle}
+                    activeView={activeView}
+                    sharedArticleLink={sharedArticleLink}
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    loadMoreRef={loadMoreRef}
+                    refreshing={refreshing}
+                    loading={loading}
+                    isLoadingMore={isLoadingMore}
+                  />
                 )}
 
                 {activeView !== "alerts" && totalItems > 0 ? (
