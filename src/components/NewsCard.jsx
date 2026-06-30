@@ -143,7 +143,7 @@ export default function NewsCard({
                   Boolean(pendingLikeLinks[article.link]) ||
                   Boolean(pendingDislikeLinks[article.link])
                 }
-                className={`flex items-center justify-center gap-2 rounded-2xl border border-white/60 bg-white/70 px-3 py-3 text-xl font-semibold backdrop-blur-sm transition duration-300 hover:bg-white ${
+                className={`like-button flex items-center justify-center gap-2 rounded-2xl border border-white/60 bg-white/70 px-3 py-3 text-xl font-semibold backdrop-blur-sm transition duration-300 hover:bg-white ${
                   article.isLiked
                     ? "text-red-600"
                     : "text-slate-700 hover:text-slate-900"
@@ -169,7 +169,7 @@ export default function NewsCard({
                   Boolean(pendingDislikeLinks[article.link]) ||
                   Boolean(pendingLikeLinks[article.link])
                 }
-                className={`flex items-center justify-center gap-2 rounded-2xl border border-white/60 bg-white/70 px-3 py-3 text-xl font-semibold backdrop-blur-sm transition duration-300 hover:bg-white ${
+                className={`dislike-button flex items-center justify-center gap-2 rounded-2xl border border-white/60 bg-white/70 px-3 py-3 text-xl font-semibold backdrop-blur-sm transition duration-300 hover:bg-white ${
                   article.isDisliked
                     ? "text-blue-600"
                     : "text-slate-700 hover:text-slate-900"
