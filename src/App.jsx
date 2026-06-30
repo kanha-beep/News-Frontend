@@ -1927,7 +1927,7 @@ function App() {
                 }
                 className="rounded-full bg-slate-200 px-4 py-2 text-sm font-semibold text-slate-700"
               >
-                {authScreen === "register" ? "Sign In" : "Register"}
+                {authScreen === "register" ? "SignIn" : "Register"}
               </button>
             </div>
           </div>
