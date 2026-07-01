@@ -46,7 +46,7 @@ export default function NewsCard({
         return (
         <article
           key={article._id || article.link}
-          className="flex min-h-[calc(100dvh-12rem)] flex-col overflow-hidden bg-white px-6 py-5 transition hover:shadow-lg sm:min-h-[calc(100dvh-13.5rem)] sm:p-5"
+          className="flex h-[calc(100dvh-11.5rem)] flex-col overflow-hidden bg-white px-6 p-3 transition sm:h-[calc(100dvh-20rem)] sm:px-5 sm:pt-5 sm:pb-2"
         >
           <div className="mb-4 flex items-start justify-between gap-3">
             <div className="flex flex-wrap gap-2">
@@ -86,7 +86,7 @@ export default function NewsCard({
             </p>
 
             <h2
-              className="mb-5 font-bold text-slate-900"
+              className="mb-3 font-bold text-slate-900"
               style={{
                 fontSize: `${2 * textScale}rem`,
                 lineHeight: 1.1,
@@ -96,18 +96,18 @@ export default function NewsCard({
             </h2>
 
             <p
-                className="line-clamp-6 min-h-0 flex-1 overflow-hidden text-slate-600"
-                style={{
-                  fontSize: `${1.125 * textScale}rem`,
-                  lineHeight: 1.8,
-                }}
-              >
-                {article.description || "No description available."}
-              </p>
+              className="line-clamp-3 min-h-0 overflow-hidden text-slate-600"
+              style={{
+                fontSize: `${1.125 * textScale}rem`,
+                lineHeight: 1.5,
+              }}
+            >
+              {article.description || "No description available."}
+            </p>
           </div>
 
-          <div className="mt-5 shrink-0 pt-5">
-            <div className="grid grid-cols-3 gap-5">
+          <div className="mt-auto shrink-0 pt-3">
+            <div className="grid grid-cols-3 gap-4">
               <button
                 type="button"
                 onClick={() => handleReadArticle(article.link)}
@@ -139,7 +139,7 @@ export default function NewsCard({
                 {article.blogId ? "Read Blog" : "Write your experience"}
               </button>
             </div>
-            <div className="mt-6 grid grid-cols-4 gap-3">
+            <div className="mt-3 grid grid-cols-4 gap-3">
               <button
                 type="button"
                 onClick={() => handleToggleLike(article)}

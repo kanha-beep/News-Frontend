@@ -86,16 +86,16 @@ export default function TopNavbar({
             alt="Lightning News logo"
             className="h-14 w-14 rounded-full object-cover"
           />
-          <a
+          {/* <a
             href="https://wa.me/919131395725"
             target="_blank"
             rel="noreferrer"
             className="text-sm text-red-600"
           >
             Contact
-          </a>
+          </a> */}
         </div>
-        <div className="flex shrink-0 flex-col gap-3">
+        <div className="flex shrink-0 gap-3">
           <button
             type="button"
             onClick={toggleThemeMode}
@@ -153,7 +153,7 @@ export default function TopNavbar({
                 <FaPlus className="text-xs" />
               </button>
             </div>
-            <button
+            {/* <button
               type="button"
               onClick={() => {
                 if (token) {
@@ -168,7 +168,7 @@ export default function TopNavbar({
               className="rounded-full bg-slate-200 px-4 py-2 text-sm font-semibold text-slate-700"
             >
               {token ? "Sign Out" : "Sign In"}
-            </button>
+            </button> */}
           </div>
         </div>
       </div>
