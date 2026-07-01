@@ -1,4 +1,5 @@
 import React from "react";
+import { sanitizeVisibleTags } from "./appHelpers.js";
 import {
   FaBookmark,
   FaCommentDots,
@@ -39,14 +40,17 @@ export default function NewsCard({
 }) {
   return (
     <div className="mx-auto grid max-w-3xl gap-2">
-      {news.map((article) => (
+      {news.map((article) => {
+        const visibleTags = sanitizeVisibleTags(article.tags);
+
+        return (
         <article
           key={article._id || article.link}
           className="flex min-h-[calc(100dvh-12rem)] flex-col overflow-hidden bg-white px-6 py-5 transition hover:shadow-lg sm:min-h-[calc(100dvh-13.5rem)] sm:p-5"
         >
           <div className="mb-4 flex items-start justify-between gap-3">
             <div className="flex flex-wrap gap-2">
-              {(article.tags?.length ? article.tags : ["untagged"]).map(
+              {(visibleTags.length ? visibleTags : ["untagged"]).map(
                 (tag) => (
                   <button
                     key={`${article.link}-${tag}`}
@@ -211,7 +215,8 @@ export default function NewsCard({
             </div>
           </div>
         </article>
-      ))}
+        );
+      })}
       {activeView !== "alerts" &&
       !sharedArticleLink &&
       currentPage < totalPages ? (

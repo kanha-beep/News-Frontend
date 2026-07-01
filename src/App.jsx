@@ -31,12 +31,20 @@ import {
   getNewsPayloadSignature,
   isDefaultFeedRequest,
   parseSelectedTags,
+  sanitizeVisibleTags,
   updateUrlParams,
   urlBase64ToUint8Array,
   cacheJsonValue,
   syncBlogSession,
   formatCommentTime,
 } from "./components/appHelpers.js";
+
+const LOADING_TAGLINES = [
+  "Almost there. Fresh headlines are on the way.",
+  "Quick news, cleaner reading, better focus.",
+  "Your news feed is warming up for a faster read.",
+  "Best platform to read news, tailored for speed.",
+];
 
 function App() {
   const [news, setNews] = useState(() => getCachedNewsPayload().items || []);
@@ -68,6 +76,8 @@ function App() {
   );
   const [loadingProgress, setLoadingProgress] = useState(0);
   const [loadingMessage, setLoadingMessage] = useState("Fetching news...");
+  const [loadingTaglineIndex, setLoadingTaglineIndex] = useState(0);
+  const [loadingDots, setLoadingDots] = useState(".");
   const [refreshing, setRefreshing] = useState(false);
   const [pendingLatestNews, setPendingLatestNews] = useState(null);
   const [pendingLatestTags, setPendingLatestTags] = useState([]);
@@ -210,7 +220,7 @@ function App() {
 
   const loadTags = async (shouldApply = true) => {
     const res = await axios.get(`${API_BASE_URL}/api/tags`);
-    const items = res.data?.items || [];
+    const items = sanitizeVisibleTags(res.data?.items || []);
 
     if (shouldApply) {
       setAvailableTags(items);
@@ -248,6 +258,73 @@ function App() {
     const registration = await navigator.serviceWorker.register("/sw.js");
     serviceWorkerRegistrationRef.current = registration;
     return registration;
+  };
+
+  const subscriptionMatchesServerKey = (subscription, serverKeyBytes) => {
+    const currentKey = subscription?.options?.applicationServerKey;
+    if (!currentKey || !serverKeyBytes) {
+      return false;
+    }
+
+    const currentKeyBytes = new Uint8Array(currentKey);
+    if (currentKeyBytes.length !== serverKeyBytes.length) {
+      return false;
+    }
+
+    return currentKeyBytes.every((value, index) => value === serverKeyBytes[index]);
+  };
+
+  const ensurePushSubscription = async ({
+    authToken = token,
+    requestPermission = false,
+  } = {}) => {
+    const currentPermission = Notification.permission || "default";
+    let permission = currentPermission;
+
+    if (requestPermission) {
+      permission = await Notification.requestPermission();
+    }
+
+    if (permission !== "granted") {
+      const error = new Error("Notification permission not granted");
+      error.permission = permission;
+      throw error;
+    }
+
+    const registration = await registerPushServiceWorker();
+    const keyRes = await axios.get(`${API_BASE_URL}/api/push/public-key`);
+    const serverKeyBytes = urlBase64ToUint8Array(
+      keyRes.data?.publicKey || "",
+    );
+
+    const existingSubscription =
+      await registration.pushManager.getSubscription();
+
+    if (
+      existingSubscription &&
+      !subscriptionMatchesServerKey(existingSubscription, serverKeyBytes)
+    ) {
+      await existingSubscription.unsubscribe();
+    }
+
+    const subscription =
+      (await registration.pushManager.getSubscription()) ||
+      (await registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: serverKeyBytes,
+      }));
+
+    await axios.post(
+      `${API_BASE_URL}/api/push/subscribe`,
+      { subscription },
+      {
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+        },
+      },
+    );
+
+    return { permission, subscription };
   };
 
   const loadAlerts = async (authToken = token, shouldApply = true) => {
@@ -601,6 +678,31 @@ function App() {
 
     bootstrap();
   }, []);
+
+  useEffect(() => {
+    if (!loading) {
+      setLoadingTaglineIndex(0);
+      setLoadingDots(".");
+      return undefined;
+    }
+
+    const taglineInterval = window.setInterval(() => {
+      setLoadingTaglineIndex(
+        (currentIndex) => (currentIndex + 1) % LOADING_TAGLINES.length,
+      );
+    }, 1800);
+
+    const dotsInterval = window.setInterval(() => {
+      setLoadingDots((currentDots) =>
+        currentDots.length >= 3 ? "." : `${currentDots}.`,
+      );
+    }, 450);
+
+    return () => {
+      window.clearInterval(taglineInterval);
+      window.clearInterval(dotsInterval);
+    };
+  }, [loading]);
 
   useEffect(() => {
     return () => {
@@ -1383,7 +1485,10 @@ function App() {
     setError("");
 
     try {
-      const permission = await Notification.requestPermission();
+      const { permission } = await ensurePushSubscription({
+        authToken: token,
+        requestPermission: true,
+      });
       if (permission !== "granted") {
         setPushState((prev) => ({
           ...prev,
@@ -1393,29 +1498,6 @@ function App() {
         }));
         return;
       }
-
-      const registration = await registerPushServiceWorker();
-      const keyRes = await axios.get(`${API_BASE_URL}/api/push/public-key`);
-      const existingSubscription =
-        await registration.pushManager.getSubscription();
-      const subscription =
-        existingSubscription ||
-        (await registration.pushManager.subscribe({
-          userVisibleOnly: true,
-          applicationServerKey: urlBase64ToUint8Array(
-            keyRes.data?.publicKey || "",
-          ),
-        }));
-
-      await axios.post(
-        `${API_BASE_URL}/api/push/subscribe`,
-        { subscription },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        },
-      );
 
       setPushState((prev) => ({
         ...prev,
@@ -1429,6 +1511,16 @@ function App() {
         type: "success",
       });
     } catch (err) {
+      if (err?.permission) {
+        setPushState((prev) => ({
+          ...prev,
+          permission: err.permission,
+          enabled: false,
+          busy: false,
+        }));
+        return;
+      }
+
       setPushState((prev) => ({ ...prev, busy: false }));
       setError(
         err?.response?.data?.message || "Unable to enable push notifications.",
@@ -1472,7 +1564,46 @@ function App() {
       setPushState((prev) => ({ ...prev, busy: false }));
       setError(
         err?.response?.data?.message || "Unable to disable push notifications.",
+        );
+      }
+    };
+
+  const handleSendTestPush = async () => {
+    if (!token) {
+      openAuthScreen("login");
+      return;
+    }
+
+    setPushState((prev) => ({ ...prev, busy: true }));
+    setError("");
+
+    try {
+      await ensurePushSubscription({
+        authToken: token,
+        requestPermission: false,
+      });
+
+      await axios.post(
+        `${API_BASE_URL}/api/push/send-test`,
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
       );
+
+      setToast({
+        show: true,
+        message: "Test notification sent",
+        type: "success",
+      });
+    } catch (err) {
+      setError(
+        err?.response?.data?.message || "Unable to send test notification.",
+      );
+    } finally {
+      setPushState((prev) => ({ ...prev, busy: false }));
     }
   };
 
@@ -2140,7 +2271,10 @@ function App() {
                     {loadingProgress}%
                   </h2>
                   <p className="mt-2 text-sm text-slate-500">
-                    {loadingMessage}
+                    {loadingMessage.replace(/\.*$/, "")}
+                    <span className="inline-block w-5 text-left">
+                      {loadingDots}
+                    </span>
                   </p>
                   <div className="mt-6 h-3 overflow-hidden rounded-full bg-slate-200">
                     <div
@@ -2148,6 +2282,9 @@ function App() {
                       style={{ width: `${loadingProgress}%` }}
                     />
                   </div>
+                  <p className="loader-tagline mt-4 text-sm font-medium text-slate-600">
+                    {LOADING_TAGLINES[loadingTaglineIndex]}
+                  </p>
                 </div>
               </div>
             ) : (
@@ -2169,6 +2306,7 @@ function App() {
                     pushState={pushState}
                     handleDisablePush={handleDisablePush}
                     handleEnablePush={handleEnablePush}
+                    handleSendTestPush={handleSendTestPush}
                     loadPushStatus={loadPushStatus}
                     token={token}
                     alertForm={alertForm}

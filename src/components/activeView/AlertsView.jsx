@@ -2,6 +2,7 @@ export default function AlertsView({
   pushState,
   handleDisablePush,
   handleEnablePush,
+  handleSendTestPush,
   loadPushStatus,
   token,
   alertForm,
@@ -57,6 +58,14 @@ export default function AlertsView({
             className="rounded-xl bg-slate-200 px-4 py-3 text-sm font-semibold text-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
           >
             Refresh Status
+          </button>
+          <button
+            type="button"
+            onClick={handleSendTestPush}
+            disabled={!pushState.enabled || pushState.busy}
+            className="rounded-xl bg-emerald-600 px-4 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            Send Test Push
           </button>
         </div>
       </div>

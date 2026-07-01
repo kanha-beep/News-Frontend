@@ -12,6 +12,8 @@ export const TAGS_CACHE_KEY = "newsTagsCache";
 export const ARTICLE_SHARE_PARAM = "article";
 export const VIEW_QUERY_PARAM = "view";
 export const SUPPORTED_VIEWS = new Set(["all", "favorites", "alerts"]);
+const MAX_VISIBLE_TAG_LENGTH = 10;
+const EXCLUDED_VISIBLE_TAGS = new Set(["photo", "photos"]);
 
 const getSearchParams = () => {
   try {
@@ -60,6 +62,20 @@ export const parseSelectedTags = (value = "") =>
     .map((item) => item.trim().toLowerCase())
     .filter(Boolean);
 
+export const sanitizeVisibleTags = (values = []) =>
+  [...new Set((Array.isArray(values) ? values : [values]).map((value) =>
+    String(value || "")
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, ""),
+  ))].filter(
+    (tag) =>
+      tag &&
+      !EXCLUDED_VISIBLE_TAGS.has(tag) &&
+      tag.length <= MAX_VISIBLE_TAG_LENGTH,
+  );
+
 const readCachedJson = (key, fallback) => {
   try {
     const rawValue = localStorage.getItem(key);
@@ -99,7 +115,8 @@ export const getCachedNewsPayload = () =>
     totalPages: 1,
   });
 
-export const getCachedTags = () => readCachedJson(TAGS_CACHE_KEY, []);
+export const getCachedTags = () =>
+  sanitizeVisibleTags(readCachedJson(TAGS_CACHE_KEY, []));
 
 export const cacheJsonValue = writeCachedJson;
 

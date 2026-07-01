@@ -53,6 +53,18 @@ body.dark-mode #root {
   }
 }
 
+@keyframes loader-tagline-float {
+  0%,
+  100% {
+    opacity: 0.7;
+    transform: translateY(0);
+  }
+  50% {
+    opacity: 1;
+    transform: translateY(-1px);
+  }
+}
+
 .loader-bar {
   position: relative;
   overflow: hidden;
@@ -72,6 +84,11 @@ body.dark-mode #root {
     transparent 100%
   );
   animation: loader-shimmer 1.2s linear infinite;
+}
+
+.loader-tagline {
+  min-height: 1.5rem;
+  animation: loader-tagline-float 1.8s ease-in-out infinite;
 }
 
 button {
