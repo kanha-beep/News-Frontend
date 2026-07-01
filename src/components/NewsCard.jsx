@@ -95,7 +95,7 @@ export default function NewsCard({
               {article.title}
             </h2>
 
-            {/* <p
+            <p
                 className="line-clamp-6 min-h-0 flex-1 overflow-hidden text-slate-600"
                 style={{
                   fontSize: `${1.125 * textScale}rem`,
@@ -103,7 +103,7 @@ export default function NewsCard({
                 }}
               >
                 {article.description || "No description available."}
-              </p> */}
+              </p>
           </div>
 
           <div className="mt-5 shrink-0 pt-5">
