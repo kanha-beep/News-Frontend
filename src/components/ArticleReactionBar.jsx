@@ -19,7 +19,7 @@ function ArticleReactionBar({
   handleCommentClick,
 }) {
   return (
-    <div className="mt-3 grid grid-cols-3 gap-4">
+    <div className="mt-3 flex justify-between">
       <button
         type="button"
         onClick={() => handleToggleLike(article)}
@@ -52,7 +52,7 @@ function ArticleReactionBar({
           Boolean(pendingDislikeLinks[article.link]) ||
           Boolean(pendingLikeLinks[article.link])
         }
-        className={`w-[6rem] dislike-button flex items-center justify-center gap-1 rounded-2xl border border-white/60 bg-white/70 p-2 text-lg font-semibold backdrop-blur-sm transition duration-300 hover:bg-white ${
+        className={`ml-[-2rem] dislike-button flex items-center justify-center gap-1 rounded-2xl border border-white/60 bg-white/70 p-2 text-lg font-semibold backdrop-blur-sm transition duration-300 hover:bg-white ${
           article.isDisliked
             ? "w-[7rem] text-blue-600"
             : "text-slate-700 hover:text-slate-900"

@@ -9,18 +9,18 @@ function ArticleActionBar({
   handleShareArticle,
 }) {
   return (
-    <div className="grid grid-cols-4 gap-4">
+    <div className="flex justify-between">
       <button
         type="button"
         onClick={() => handleReadArticle(article.link)}
-        className="flex items-center justify-center rounded-2xl border border-white/60 bg-white/70 p-1 text-sm text-slate-900 backdrop-blur-sm transition hover:bg-white hover:text-slate-700"
+        className="flex items-center justify-center rounded-2xl border border-white/60 bg-white/70 text-slate-900 p-3 backdrop-blur-sm transition hover:bg-white hover:text-slate-700"
         aria-label="Read article"
         title="Read article"
       >
         <FaEye />
       </button>
 
-      <button
+      {/* <button
         type="button"
         onClick={() => handleCreateBlog(article)}
         className="flex items-center justify-center rounded-2xl border border-white/60 bg-white/70 p-1 text-sm text-slate-900 backdrop-blur-sm transition hover:bg-white hover:text-slate-700"
@@ -28,7 +28,7 @@ function ArticleActionBar({
         title="Write your own experience"
       >
         <FaPencilAlt />
-      </button>
+      </button> */}
 
       <button
         type="button"
@@ -37,14 +37,14 @@ function ArticleActionBar({
             ? handleReadBlog(article.blogId)
             : handleCreateBlog(article)
         }
-        className="w-[5rem] rounded-2xl border border-white/60 bg-white/70 p-1 text-[0.7rem] font-semibold text-slate-900 backdrop-blur-sm transition hover:bg-white hover:text-slate-700"
+        className="w-[8rem] text-[0.7rem] justify-between items-center rounded-2xl border border-white/60 bg-white/60 font-semibold text-slate-900 backdrop-blur-sm transition hover:bg-white hover:text-slate-700"
       >
         {article.blogId ? "Read Blog" : "Write your opinion"}
       </button>
       <button
         type="button"
         onClick={() => handleShareArticle(article)}
-        className="flex items-center justify-center gap-2 rounded-2xl border border-white/60 bg-white/70 px-3 py-3 text-xl font-semibold text-slate-900 backdrop-blur-sm transition hover:bg-white hover:text-slate-700"
+        className="flex items-center justify-center rounded-2xl border border-white/60 bg-white/70 font-semibold p-3 text-slate-900 backdrop-blur-sm transition hover:bg-white hover:text-slate-700"
         aria-label="Share article"
         title="Share article"
       >

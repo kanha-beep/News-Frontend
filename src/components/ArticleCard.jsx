@@ -71,7 +71,7 @@ function ArticleCard({
         </h2>
 
         <p
-          className="line-clamp-3 min-h-0 overflow-hidden text-slate-600"
+          className="line-clamp-2 min-h-0 overflow-hidden text-slate-600"
           style={{
             fontSize: `${1.125 * textScale}rem`,
             lineHeight: 1.5,
