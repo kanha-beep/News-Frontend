@@ -1,22 +1,19 @@
 import { useEffect, useRef, useState } from "react";
 import axios from "axios";
+import AppToast from "./components/AppToast.jsx";
+import AuthScreen from "./components/AuthScreen.jsx";
 import BottomNavbar from "./components/BottomNavbar.jsx";
-import SearchField from "./components/SearchField.jsx";
+import CommentModal from "./components/CommentModal.jsx";
+import LoadingScreen from "./components/LoadingScreen.jsx";
+import SearchModal from "./components/SearchModal.jsx";
+import SelectedTagsBar from "./components/SelectedTagsBar.jsx";
+import TagSidebar from "./components/TagSidebar.jsx";
 import {
   AlertsView,
   MobileTagMenu,
   NewsFeedView,
 } from "./components/activeView/index.js";
 import { AppProvider } from "./context/AppContext.jsx";
-import {
-  FaFilter,
-  FaMoon,
-  FaNewspaper,
-  FaRegBell,
-  FaSearch,
-  FaSun,
-  FaTimes,
-} from "react-icons/fa";
 import TopNavbar from "./components/TopNavbar.jsx";
 import {
   API_BASE_URL,
@@ -38,7 +35,6 @@ import {
   urlBase64ToUint8Array,
   cacheJsonValue,
   syncBlogSession,
-  formatCommentTime,
 } from "./components/appHelpers.js";
 
 const LOADING_TAGLINES = [
@@ -1795,117 +1791,15 @@ function App() {
               openAuthScreen={openAuthScreen}
             />
 
-            <div className="mx-auto max-w-md rounded-2xl bg-white p-6 shadow-sm">
-              <p className="text-sm font-medium uppercase tracking-[0.25em] text-blue-600">
-                {authScreen === "register" ? "Create Account" : "Sign In"}
-              </p>
-              <h2 className="mt-2 text-3xl font-bold text-slate-900">
-                {authScreen === "register"
-                  ? "Save your favorite news"
-                  : "Access your favorites"}
-              </h2>
-              <p className="mt-2 text-sm text-slate-500">
-                {authScreen === "register"
-                  ? "Create an account to keep favorite articles in your dashboard."
-                  : "Sign in to continue with your saved favorites."}
-              </p>
-
-              <form onSubmit={handleAuthSubmit} className="mt-6 space-y-4">
-                {authScreen === "register" ? (
-                  <div>
-                    <label className="mb-2 block text-sm font-semibold text-slate-700">
-                      Name
-                    </label>
-                    <input
-                      value={authForm.name}
-                      onChange={(e) =>
-                        setAuthForm((prev) => ({
-                          ...prev,
-                          name: e.target.value,
-                        }))
-                      }
-                      className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none transition focus:border-blue-500"
-                      placeholder="Your name"
-                    />
-                  </div>
-                ) : null}
-
-                <div>
-                  <label className="mb-2 block text-sm font-semibold text-slate-700">
-                    Email
-                  </label>
-                  <input
-                    type="email"
-                    value={authForm.email}
-                    onChange={(e) =>
-                      setAuthForm((prev) => ({
-                        ...prev,
-                        email: e.target.value,
-                      }))
-                    }
-                    className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none transition focus:border-blue-500"
-                    placeholder="you@example.com"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="mb-2 block text-sm font-semibold text-slate-700">
-                    Password
-                  </label>
-                  <input
-                    type="password"
-                    value={authForm.password}
-                    onChange={(e) =>
-                      setAuthForm((prev) => ({
-                        ...prev,
-                        password: e.target.value,
-                      }))
-                    }
-                    className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none transition focus:border-blue-500"
-                    placeholder="Minimum 6 characters"
-                    required
-                  />
-                </div>
-
-                {error ? (
-                  <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-                    {error}
-                  </div>
-                ) : null}
-
-                <button
-                  type="submit"
-                  disabled={authSubmitting}
-                  className="w-full rounded-xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  {authSubmitting
-                    ? "Please wait..."
-                    : authScreen === "register"
-                      ? "Create Account"
-                      : "Sign In"}
-                </button>
-              </form>
-
-              <div className="mt-4 flex items-center justify-between gap-3">
-                <p className="text-sm text-slate-500">
-                  {authScreen === "register"
-                    ? "Already have an account?"
-                    : "Need a new account?"}
-                </p>
-                <button
-                  type="button"
-                  onClick={() =>
-                    setAuthScreen((prev) =>
-                      prev === "register" ? "login" : "register",
-                    )
-                  }
-                  className="rounded-full bg-slate-200 px-4 py-2 text-sm font-semibold text-slate-700"
-                >
-                  {authScreen === "register" ? "SignIn" : "Register"}
-                </button>
-              </div>
-            </div>
+            <AuthScreen
+              authScreen={authScreen}
+              handleAuthSubmit={handleAuthSubmit}
+              authForm={authForm}
+              setAuthForm={setAuthForm}
+              error={error}
+              authSubmitting={authSubmitting}
+              setAuthScreen={setAuthScreen}
+            />
           </div>
         </div>
       </AppProvider>
@@ -1915,267 +1809,66 @@ function App() {
   return (
     <AppProvider value={appContextValue}>
       <div className="min-h-screen bg-slate-100 text-slate-900">
-      {toast.show ? (
-        <div className="fixed right-4 top-4 z-50">
-          <div
-            className={`rounded-xl px-4 py-3 text-sm font-semibold shadow-lg ${
-              toast.type === "success"
-                ? "bg-emerald-500 text-white"
-                : "bg-slate-900 text-white"
-            }`}
-          >
-            {toast.message}
-          </div>
-        </div>
-      ) : null}
-      {commentModalArticle ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 px-4 py-6">
-          <div className="flex max-h-[85vh] w-full max-w-2xl flex-col rounded-2xl bg-white shadow-xl">
-            <div className="flex items-start justify-between gap-4 border-b border-slate-200 px-5 py-4">
-              <div className="min-w-0">
-                <p className="text-xs font-semibold uppercase tracking-[0.24em] text-blue-600">
-                  Comments
-                </p>
-                <h3 className="mt-2 text-lg font-bold text-slate-900">
-                  {commentModalArticle.title}
-                </h3>
-              </div>
-              <button
-                type="button"
-                onClick={closeCommentModal}
-                className="rounded-full bg-slate-100 px-3 py-2 text-sm font-semibold text-slate-700"
-              >
-                Close
-              </button>
-            </div>
-
-            <div className="flex-1 space-y-4 overflow-y-auto px-5 py-4">
-              {commentsError && !commentSubmitting ? (
-                <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-                  {commentsError}
-                </div>
-              ) : null}
-
-              {commentsLoading ? (
-                <p className="text-sm font-medium text-blue-600">
-                  Loading comments...
-                </p>
-              ) : comments.length === 0 ? (
-                <div className="rounded-xl bg-slate-50 px-4 py-6 text-center">
-                  <p className="text-sm font-semibold text-slate-700">
-                    No comments yet.
-                  </p>
-                  <p className="mt-1 text-sm text-slate-500">
-                    Start the conversation on this article.
-                  </p>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {comments.map((comment) => (
-                    <div
-                      key={comment.id}
-                      className="rounded-xl bg-slate-50 px-4 py-3"
-                    >
-                      <div className="flex items-center justify-between gap-3">
-                        <p className="text-sm font-semibold text-slate-900">
-                          {comment.userName}
-                        </p>
-                        <p className="text-xs text-slate-500">
-                          {formatCommentTime(comment.createdAt)}
-                        </p>
-                      </div>
-                      <p className="mt-2 text-sm leading-6 text-slate-600">
-                        {comment.content}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            <form
-              onSubmit={handleCommentSubmit}
-              className="border-t border-slate-200 px-5 py-4"
-            >
-              <label className="mb-2 block text-sm font-semibold text-slate-700">
-                Add your comment
-              </label>
-              <textarea
-                value={commentText}
-                onChange={(e) => setCommentText(e.target.value)}
-                rows={4}
-                maxLength={500}
-                placeholder="Write your thoughts on this news..."
-                className="w-full resize-none rounded-xl border border-slate-300 px-4 py-3 outline-none transition focus:border-blue-500"
-              />
-              <div className="mt-3 flex items-center justify-between gap-3">
-                <p className="text-xs text-slate-500">
-                  {token
-                    ? `${commentText.trim().length}/500`
-                    : "Sign in to post your comment"}
-                </p>
-                <button
-                  type="submit"
-                  disabled={commentSubmitting}
-                  className="rounded-xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  {commentSubmitting ? "Posting..." : "Post Comment"}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      ) : null}
-      <div className="px-4 pt-44 sm:px-6 sm:pb-28 sm:pt-36 lg:px-8">
-        <TopNavbar
-          toggleThemeMode={toggleThemeMode}
-          handleRefresh={handleRefresh}
-          pendingLatestNews={pendingLatestNews}
-          handleApplyLatestNews={handleApplyLatestNews}
-          totalItems={totalItems}
-          increaseTextScale={increaseTextScale}
-          decreaseTextScale={decreaseTextScale}
-          openAuthScreen={openAuthScreen}
+        <AppToast toast={toast} />
+        <CommentModal
+          article={commentModalArticle}
+          closeCommentModal={closeCommentModal}
+          commentsError={commentsError}
+          commentSubmitting={commentSubmitting}
+          commentsLoading={commentsLoading}
+          comments={comments}
+          handleCommentSubmit={handleCommentSubmit}
+          commentText={commentText}
+          setCommentText={setCommentText}
+          token={token}
         />
-        <BottomNavbar
-          handleViewChange={handleViewChange}
-          openSearchModal={openSearchModal}
-          openTagBrowser={openTagBrowser}
-        />
-
-        {activeView !== "alerts" && isMobileTagMenuOpen ? (
-          <MobileTagMenu
-            setIsMobileTagMenuOpen={setIsMobileTagMenuOpen}
-            tagBrowserQuery={tagBrowserQuery}
-            setTagBrowserQuery={setTagBrowserQuery}
-            applyTagQuery={applyTagQuery}
-            selectedTags={selectedTags}
-            filteredBrowserTags={filteredBrowserTags}
-            selectedTagSet={selectedTagSet}
+        <div className="px-4 pt-44 sm:px-6 sm:pb-28 sm:pt-36 lg:px-8">
+          <TopNavbar
+            toggleThemeMode={toggleThemeMode}
+            handleRefresh={handleRefresh}
+            pendingLatestNews={pendingLatestNews}
+            handleApplyLatestNews={handleApplyLatestNews}
+            totalItems={totalItems}
+            increaseTextScale={increaseTextScale}
+            decreaseTextScale={decreaseTextScale}
+            openAuthScreen={openAuthScreen}
           />
-        ) : null}
+          <BottomNavbar
+            handleViewChange={handleViewChange}
+            openSearchModal={openSearchModal}
+            openTagBrowser={openTagBrowser}
+          />
 
-        {activeView !== "alerts" && isSearchModalOpen ? (
-          <div className="fixed inset-0 z-40 flex items-center justify-center bg-slate-900/50 px-4">
-            <div className="w-full max-w-xl rounded-2xl bg-white p-4 shadow-xl">
-              <div className="mb-4 flex items-start justify-between gap-4">
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.24em] text-blue-600">
-                    Search News
-                  </p>
-                  <h2 className="mt-2 text-lg font-bold text-slate-900">
-                    Filter by title and date
-                  </h2>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setIsSearchModalOpen(false)}
-                  className="rounded-full bg-slate-200 px-3 py-2 text-sm font-semibold text-slate-700"
-                >
-                  Close
-                </button>
-              </div>
+          {activeView !== "alerts" && isMobileTagMenuOpen ? (
+            <MobileTagMenu
+              setIsMobileTagMenuOpen={setIsMobileTagMenuOpen}
+              tagBrowserQuery={tagBrowserQuery}
+              setTagBrowserQuery={setTagBrowserQuery}
+              applyTagQuery={applyTagQuery}
+              selectedTags={selectedTags}
+              filteredBrowserTags={filteredBrowserTags}
+              selectedTagSet={selectedTagSet}
+            />
+          ) : null}
 
-              <div className="space-y-4">
-                <div>
-                  <label
-                    htmlFor="modal-title-search"
-                    className="mb-2 block text-sm font-semibold text-slate-700"
-                  >
-                    Search headline text
-                  </label>
-                  <input
-                    id="modal-title-search"
-                    value={titleQuery}
-                    onChange={(e) => {
-                      clearSharedArticleFocus();
-                      setTitleQuery(e.target.value);
-                    }}
-                    placeholder="Search headline text..."
-                    className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none transition focus:border-blue-500"
-                  />
-                </div>
-
-                <div>
-                  <label
-                    htmlFor="modal-date-search"
-                    className="mb-2 block text-sm font-semibold text-slate-700"
-                  >
-                    Filter by date
-                  </label>
-                  <input
-                    id="modal-date-search"
-                    type="date"
-                    value={dateFilter}
-                    onChange={(e) => {
-                      clearSharedArticleFocus();
-                      setDateFilter(e.target.value);
-                    }}
-                    className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none transition focus:border-blue-500"
-                  />
-                </div>
-
-                <div className="flex flex-wrap gap-3">
-                  <button
-                    type="button"
-                    onClick={clearAllFilters}
-                    className="rounded-xl bg-slate-200 px-4 py-3 text-sm font-semibold text-slate-700"
-                  >
-                    Clear Filters
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        ) : null}
-        <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
-          <aside id="tag-sidebar" className="hidden">
-            {activeView === "alerts" ? null : (
-              <div className="rounded-2xl bg-white p-4 shadow-sm">
-                <div className="mb-4">
-                  <p className="text-xs font-semibold uppercase tracking-[0.24em] text-blue-600">
-                    Browse Tags
-                  </p>
-                  <h2 className="mt-2 text-lg font-bold text-slate-900">
-                    Filter by category
-                  </h2>
-                </div>
-
-                <div className="flex flex-col gap-2">
-                  <button
-                    type="button"
-                    onClick={() => applyTagQuery("")}
-                    className={`w-full rounded-xl px-4 py-3 text-left text-sm font-semibold transition ${
-                      selectedTags.length
-                        ? "bg-slate-100 text-slate-700 hover:bg-slate-200"
-                        : "bg-slate-900 text-white"
-                    }`}
-                  >
-                    All Tags
-                  </button>
-
-                  {availableTags.map((tag) => {
-                    const isActive = selectedTagSet.has(tag.toLowerCase());
-
-                    return (
-                      <button
-                        key={tag}
-                        type="button"
-                        onClick={() => applyTagQuery(tag)}
-                        className={`w-full rounded-xl px-4 py-3 text-left text-sm font-semibold transition ${
-                          isActive
-                            ? "bg-blue-600 text-white"
-                            : "bg-slate-100 text-slate-700 hover:bg-slate-200"
-                        }`}
-                      >
-                        #{tag}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-          </aside>
+          <SearchModal
+            isOpen={activeView !== "alerts" && isSearchModalOpen}
+            setIsSearchModalOpen={setIsSearchModalOpen}
+            titleQuery={titleQuery}
+            setTitleQuery={setTitleQuery}
+            dateFilter={dateFilter}
+            setDateFilter={setDateFilter}
+            clearSharedArticleFocus={clearSharedArticleFocus}
+            clearAllFilters={clearAllFilters}
+          />
+          <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
+            <TagSidebar
+              activeView={activeView}
+              applyTagQuery={applyTagQuery}
+              selectedTags={selectedTags}
+              availableTags={availableTags}
+              selectedTagSet={selectedTagSet}
+            />
 
           <div className="min-w-0 flex-1">
             {activeView === "alerts" ? null : (
@@ -2204,20 +1897,10 @@ function App() {
                   </div>
                 </div>
                 */}
-                  {selectedTags.length ? (
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      {selectedTags.map((tag) => (
-                        <button
-                          key={`selected-${tag}`}
-                          type="button"
-                          onClick={() => applyTagQuery(tag)}
-                          className="rounded-full bg-slate-900 px-3 py-1 text-xs font-semibold text-white"
-                        >
-                          #{tag} x
-                        </button>
-                      ))}
-                    </div>
-                  ) : null}
+                  <SelectedTagsBar
+                    selectedTags={selectedTags}
+                    applyTagQuery={applyTagQuery}
+                  />
                 </div>
 
                 <div className="min-w-0 lg:mt-0">
@@ -2264,31 +1947,12 @@ function App() {
             )}
 
             {loading ? (
-              <div className="flex min-h-[40vh] items-center justify-center">
-                <div className="w-full max-w-xl rounded-3xl bg-white p-8 text-left shadow-lg">
-                  <p className="text-xs font-semibold uppercase tracking-[0.3em] text-blue-600">
-                    Fetching News
-                  </p>
-                  <h2 className="mt-3 text-2xl font-bold text-slate-800">
-                    {loadingProgress}%
-                  </h2>
-                  <p className="mt-2 text-sm text-slate-500">
-                    {loadingMessage.replace(/\.*$/, "")}
-                    <span className="inline-block w-5 text-left">
-                      {loadingDots}
-                    </span>
-                  </p>
-                  <div className="mt-6 h-3 overflow-hidden rounded-full bg-slate-200">
-                    <div
-                      className="loader-bar h-full rounded-full bg-gradient-to-r from-blue-500 via-sky-500 to-cyan-400 transition-[width] duration-300 ease-out"
-                      style={{ width: `${loadingProgress}%` }}
-                    />
-                  </div>
-                  <p className="loader-tagline mt-4 text-sm font-medium text-slate-600">
-                    {LOADING_TAGLINES[loadingTaglineIndex]}
-                  </p>
-                </div>
-              </div>
+              <LoadingScreen
+                loadingProgress={loadingProgress}
+                loadingMessage={loadingMessage}
+                loadingDots={loadingDots}
+                loadingTagline={LOADING_TAGLINES[loadingTaglineIndex]}
+              />
             ) : (
               <>
                 {error ? (
@@ -2350,9 +2014,9 @@ function App() {
                 )}
               </>
             )}
+          </div>
+          </div>
         </div>
-      </div>
-      </div>
       </div>
     </AppProvider>
   );

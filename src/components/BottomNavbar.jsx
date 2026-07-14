@@ -6,6 +6,7 @@ import {
   FaRegBell,
   FaSearch,
 } from "react-icons/fa";
+import BottomNavItem from "./BottomNavItem.jsx";
 import { useAppContext } from "../context/AppContext.jsx";
 
 export default function BottomNavbar({
@@ -19,58 +20,34 @@ export default function BottomNavbar({
     <div>
       <nav className="fixed inset-x-0 bottom-0 z-30 bg-slate-900 px-3 pt-3 pb-2 text-white">
         <div className="grid grid-cols-5 gap-5">
-          <button
-            type="button"
+          <BottomNavItem
+            isActive={activeView === "all"}
             onClick={() => handleViewChange("all")}
-            className={`flex flex-col items-center gap-1 rounded-2xl px-3 py-2 text-xs font-semibold ${
-              activeView === "all"
-                ? "bg-white text-slate-900"
-                : "bg-transparent text-white"
-            }`}
-          >
-            <FaNewspaper className="text-base" />
-            Feed
-          </button>
-          <button
-            type="button"
+            icon={<FaNewspaper className="text-base" />}
+            label="Feed"
+          />
+          <BottomNavItem
+            isActive={activeView === "favorites"}
             onClick={() => handleViewChange("favorites")}
-            className={`flex flex-col items-center gap-1 rounded-2xl px-3 py-2 text-xs font-semibold ${
-              activeView === "favorites"
-                ? "bg-white text-slate-900"
-                : "bg-transparent text-white"
-            }`}
-          >
-            <FaBookmark className="text-base" />
-            Saved
-          </button>
-          <button
-            type="button"
+            icon={<FaBookmark className="text-base" />}
+            label="Saved"
+          />
+          <BottomNavItem
+            isActive={activeView === "alerts"}
             onClick={() => handleViewChange("alerts")}
-            className={`flex flex-col items-center gap-1 rounded-2xl px-3 py-2 text-xs font-semibold ${
-              activeView === "alerts"
-                ? "bg-white text-slate-900"
-                : "bg-transparent text-white"
-            }`}
-          >
-            <FaRegBell className="text-base" />
-            Alerts
-          </button>
-          <button
-            type="button"
+            icon={<FaRegBell className="text-base" />}
+            label="Alerts"
+          />
+          <BottomNavItem
             onClick={openSearchModal}
-            className="flex flex-col items-center gap-1 rounded-2xl px-3 py-2 text-xs font-semibold text-white"
-          >
-            <FaSearch className="text-base" />
-            Search
-          </button>
-          <button
-            type="button"
+            icon={<FaSearch className="text-base" />}
+            label="Search"
+          />
+          <BottomNavItem
             onClick={openTagBrowser}
-            className="flex flex-col items-center gap-1 rounded-2xl px-3 py-2 text-xs font-semibold text-white"
-          >
-            <FaFilter className="text-base" />
-            Tags
-          </button>
+            icon={<FaFilter className="text-base" />}
+            label="Tags"
+          />
         </div>
       </nav>
     </div>
