@@ -38,7 +38,7 @@ function TopNavbarMain({
           >
             {isDarkMode ? <FaSun /> : <FaMoon />}
           </button>
-          <button
+          {/* <button
             type="button"
             onClick={handleRefresh}
             className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-600 text-sm font-semibold text-white hover:bg-blue-700"
@@ -46,7 +46,7 @@ function TopNavbarMain({
             title="Refresh"
           >
             <FaSyncAlt />
-          </button>
+          </button> */}
         </div>
         {pendingLatestNews ? (
           <button

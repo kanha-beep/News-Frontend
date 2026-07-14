@@ -44,6 +44,9 @@ const LOADING_TAGLINES = [
   "Best platform to read news, tailored for speed.",
 ];
 
+const PULL_REFRESH_TRIGGER = 84;
+const PULL_REFRESH_MAX = 120;
+
 function App() {
   const [news, setNews] = useState(() => getCachedNewsPayload().items || []);
   const [availableTags, setAvailableTags] = useState(() => getCachedTags());
@@ -97,9 +100,7 @@ function App() {
     getInitialSharedArticleLink(),
   );
   const [pendingLikeLinks, setPendingLikeLinks] = useState({});
-  const [likeBurstLinks, setLikeBurstLinks] = useState({});
   const [pendingDislikeLinks, setPendingDislikeLinks] = useState({});
-  const [dislikeBurstLinks, setDislikeBurstLinks] = useState({});
   const [commentModalArticle, setCommentModalArticle] = useState(null);
   const [comments, setComments] = useState([]);
   const [commentsLoading, setCommentsLoading] = useState(false);
@@ -118,14 +119,17 @@ function App() {
     busy: false,
   });
   const [textScale, setTextScale] = useState(1);
+  const [pullDistance, setPullDistance] = useState(0);
+  const [isPullRefreshing, setIsPullRefreshing] = useState(false);
   const loadingProgressRef = useRef(0);
   const loadingAnimationRef = useRef(null);
   const hasBootstrappedRef = useRef(false);
-  const likeBurstTimeoutsRef = useRef({});
-  const dislikeBurstTimeoutsRef = useRef({});
   const visitTrackedRef = useRef(false);
   const serviceWorkerRegistrationRef = useRef(null);
   const loadMoreRef = useRef(null);
+  const pullAreaRef = useRef(null);
+  const pullStartYRef = useRef(0);
+  const isPullingRef = useRef(false);
 
   const appContextValue = {
     authScreen,
@@ -708,12 +712,6 @@ function App() {
         clearInterval(loadingAnimationRef.current);
       }
 
-      Object.values(likeBurstTimeoutsRef.current).forEach((timeoutId) => {
-        clearTimeout(timeoutId);
-      });
-      Object.values(dislikeBurstTimeoutsRef.current).forEach((timeoutId) => {
-        clearTimeout(timeoutId);
-      });
     };
   }, []);
 
@@ -833,6 +831,7 @@ function App() {
       !loadMoreRef.current ||
       loading ||
       refreshing ||
+      isLoadingMore ||
       activeView === "alerts" ||
       sharedArticleLink ||
       currentPage >= totalPages
@@ -863,6 +862,7 @@ function App() {
   }, [
     activeView,
     currentPage,
+    isLoadingMore,
     loading,
     refreshing,
     sharedArticleLink,
@@ -1087,7 +1087,6 @@ function App() {
     const nextLikedState = !article.isLiked;
     const nextDislikedState = nextLikedState ? false : article.isDisliked;
     setPendingLikeLinks((prev) => ({ ...prev, [article.link]: true }));
-    setLikeBurstLinks((prev) => ({ ...prev, [article.link]: true }));
     setNews((prev) =>
       prev.map((item) =>
         item.link === article.link
@@ -1107,14 +1106,6 @@ function App() {
           : item,
       ),
     );
-
-    if (likeBurstTimeoutsRef.current[article.link]) {
-      clearTimeout(likeBurstTimeoutsRef.current[article.link]);
-    }
-    likeBurstTimeoutsRef.current[article.link] = setTimeout(() => {
-      setLikeBurstLinks((prev) => ({ ...prev, [article.link]: false }));
-      delete likeBurstTimeoutsRef.current[article.link];
-    }, 380);
 
     try {
       const res = await axios.post(
@@ -1199,7 +1190,6 @@ function App() {
     const nextDislikedState = !article.isDisliked;
     const nextLikedState = nextDislikedState ? false : article.isLiked;
     setPendingDislikeLinks((prev) => ({ ...prev, [article.link]: true }));
-    setDislikeBurstLinks((prev) => ({ ...prev, [article.link]: true }));
     setNews((prev) =>
       prev.map((item) =>
         item.link === article.link
@@ -1219,14 +1209,6 @@ function App() {
           : item,
       ),
     );
-
-    if (dislikeBurstTimeoutsRef.current[article.link]) {
-      clearTimeout(dislikeBurstTimeoutsRef.current[article.link]);
-    }
-    dislikeBurstTimeoutsRef.current[article.link] = setTimeout(() => {
-      setDislikeBurstLinks((prev) => ({ ...prev, [article.link]: false }));
-      delete dislikeBurstTimeoutsRef.current[article.link];
-    }, 380);
 
     try {
       const res = await axios.post(
@@ -1775,6 +1757,112 @@ function App() {
     setTextScale((prev) => Math.max(0.9, Number((prev - 0.1).toFixed(2))));
   };
 
+  const resetPullGesture = () => {
+    isPullingRef.current = false;
+    pullStartYRef.current = 0;
+    setPullDistance(0);
+  };
+
+  const triggerPullRefresh = async () => {
+    if (refreshing || loading || isPullRefreshing) {
+      resetPullGesture();
+      return;
+    }
+
+    setIsPullRefreshing(true);
+    setPullDistance(PULL_REFRESH_TRIGGER);
+
+    try {
+      await handleRefresh();
+    } finally {
+      setIsPullRefreshing(false);
+      setPullDistance(0);
+    }
+  };
+
+  const handlePullTouchStart = (event) => {
+    if (
+      event.touches.length !== 1 ||
+      window.scrollY > 0 ||
+      loading ||
+      refreshing ||
+      isPullRefreshing ||
+      isSearchModalOpen ||
+      isMobileTagMenuOpen ||
+      commentModalArticle
+    ) {
+      isPullingRef.current = false;
+      return;
+    }
+
+    isPullingRef.current = true;
+    pullStartYRef.current = event.touches[0].clientY;
+  };
+
+  const handlePullTouchMove = (event) => {
+    if (!isPullingRef.current) {
+      return;
+    }
+
+    const deltaY = event.touches[0].clientY - pullStartYRef.current;
+
+    if (deltaY <= 0) {
+      resetPullGesture();
+      return;
+    }
+
+    if (window.scrollY > 0) {
+      resetPullGesture();
+      return;
+    }
+
+    const dampedDistance = Math.min(PULL_REFRESH_MAX, deltaY * 0.45);
+    setPullDistance(dampedDistance);
+    event.preventDefault();
+  };
+
+  const handlePullTouchEnd = () => {
+    if (!isPullingRef.current) {
+      return;
+    }
+
+    if (pullDistance >= PULL_REFRESH_TRIGGER) {
+      isPullingRef.current = false;
+      void triggerPullRefresh();
+      return;
+    }
+
+    resetPullGesture();
+  };
+
+  const isPullReady = pullDistance >= PULL_REFRESH_TRIGGER;
+  const pullIndicatorVisible = pullDistance > 0 || isPullRefreshing;
+
+  useEffect(() => {
+    const pullArea = pullAreaRef.current;
+    if (!pullArea) {
+      return undefined;
+    }
+
+    const onTouchMove = (event) => {
+      handlePullTouchMove(event);
+    };
+
+    pullArea.addEventListener("touchmove", onTouchMove, { passive: false });
+
+    return () => {
+      pullArea.removeEventListener("touchmove", onTouchMove);
+    };
+  }, [
+    commentModalArticle,
+    isMobileTagMenuOpen,
+    isPullRefreshing,
+    isSearchModalOpen,
+    loading,
+    pullDistance,
+    refreshing,
+  ]);
+
   if (authScreen) {
     return (
       <AppProvider value={appContextValue}>
@@ -1822,7 +1910,32 @@ function App() {
           setCommentText={setCommentText}
           token={token}
         />
-        <div className="px-4 pt-44 sm:px-6 sm:pb-28 sm:pt-36 lg:px-8">
+        <div className="relative overflow-x-hidden">
+          <div
+            className={`pull-refresh-indicator ${
+              pullIndicatorVisible ? "is-visible" : ""
+            } ${isPullReady || isPullRefreshing ? "is-ready" : ""} ${
+              isPullRefreshing ? "is-refreshing" : ""
+            }`}
+            style={{
+              transform: `translate(-50%, ${Math.min(
+                20,
+                pullDistance - 44,
+              )}px)`,
+            }}
+          >
+            <div className="pull-refresh-spinner" />
+            <span className="pull-refresh-label">
+              {isPullRefreshing
+                ? "Refreshing feed..."
+                : isPullReady
+                  ? "Release to refresh"
+                  : "Pull to refresh"}
+            </span>
+          </div>
+          <div
+            className="px-4 pt-[5rem] sm:px-6 sm:pb-28 sm:pt-36 lg:px-8 lg:pt-[5rem]"
+          >
           <TopNavbar
             toggleThemeMode={toggleThemeMode}
             handleRefresh={handleRefresh}
@@ -1861,6 +1974,18 @@ function App() {
             clearSharedArticleFocus={clearSharedArticleFocus}
             clearAllFilters={clearAllFilters}
           />
+          <div
+            ref={pullAreaRef}
+            onTouchStart={handlePullTouchStart}
+            onTouchEnd={handlePullTouchEnd}
+            onTouchCancel={handlePullTouchEnd}
+            style={{
+              transform: `translateY(${pullDistance}px)`,
+              transition: isPullingRef.current
+                ? "none"
+                : "transform 220ms cubic-bezier(0.22, 1, 0.36, 1)",
+            }}
+          >
           <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
             <TagSidebar
               activeView={activeView}
@@ -1874,29 +1999,7 @@ function App() {
             {activeView === "alerts" ? null : (
               <div className="mt-5">
                 <div className="max-w-3xl">
-                  {/*
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={openTagBrowser}
-                    className="rounded-xl bg-slate-200 px-4 py-3 text-sm font-semibold text-slate-700"
-                  >
-                    Tag
-                  </button>
-                  <div className="relative min-w-0 flex-1">
-                    <input
-                      id="smart-search"
-                      value={titleQuery}
-                      onChange={(e) => {
-                        clearSharedArticleFocus();
-                        setTitleQuery(e.target.value);
-                      }}
-                      placeholder="Search headline text..."
-                      className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none transition focus:border-blue-500"
-                    />
-                  </div>
-                </div>
-                */}
+                 
                   <SelectedTagsBar
                     selectedTags={selectedTags}
                     applyTagQuery={applyTagQuery}
@@ -1904,44 +2007,7 @@ function App() {
                 </div>
 
                 <div className="min-w-0 lg:mt-0">
-                  {/* <label
-                  htmlFor="date-search"
-                  className="mb-2 block text-sm font-semibold text-slate-700"
-                >
-                  Search by date
-                </label> */}
-                  {/*
-                <div className="flex items-center gap-2">
-                  <input
-                    id="date-search"
-                    type="date"
-                    value={dateFilter}
-                    onChange={(e) => {
-                      clearSharedArticleFocus();
-                      setDateFilter(e.target.value);
-                    }}
-                    className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none transition focus:border-blue-500"
-                  />
-                  <button
-                    type="button"
-                    onClick={clearAllFilters}
-                    className="flex h-12 w-12 items-center justify-center rounded-xl bg-slate-200 text-sm font-semibold text-slate-700"
-                    aria-label="Clear filters"
-                    title="Clear filters"
-                  >
-                    <FaTimes />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={toggleThemeMode}
-                    className="flex h-12 w-12 items-center justify-center rounded-xl bg-slate-200 text-sm font-semibold text-slate-700"
-                    aria-label={isDarkMode ? "Light mode" : "Dark mode"}
-                    title={isDarkMode ? "Light mode" : "Dark mode"}
-                  >
-                    {isDarkMode ? <FaSun /> : <FaMoon />}
-                  </button>
-                </div>
-                */}
+                  
                 </div>
               </div>
             )}
@@ -1996,9 +2062,7 @@ function App() {
                     handleToggleLike={handleToggleLike}
                     handleToggleDislike={handleToggleDislike}
                     pendingLikeLinks={pendingLikeLinks}
-                    likeBurstLinks={likeBurstLinks}
                     pendingDislikeLinks={pendingDislikeLinks}
-                    dislikeBurstLinks={dislikeBurstLinks}
                     handleCommentClick={handleCommentClick}
                     handleShareArticle={handleShareArticle}
                     activeView={activeView}
@@ -2016,6 +2080,8 @@ function App() {
             )}
           </div>
           </div>
+          </div>
+        </div>
         </div>
       </div>
     </AppProvider>

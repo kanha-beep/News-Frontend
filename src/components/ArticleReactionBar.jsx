@@ -13,9 +13,7 @@ function ArticleReactionBar({
   handleToggleLike,
   handleToggleDislike,
   pendingLikeLinks,
-  likeBurstLinks,
   pendingDislikeLinks,
-  dislikeBurstLinks,
   handleCommentClick,
 }) {
   return (
@@ -27,15 +25,11 @@ function ArticleReactionBar({
           Boolean(pendingLikeLinks[article.link]) ||
           Boolean(pendingDislikeLinks[article.link])
         }
-        className={`w-[5rem] like-button flex items-center justify-center gap-2 rounded-2xl border border-white/60 bg-white/70 px-3 py-3 text-xl font-semibold backdrop-blur-sm transition duration-300 hover:bg-white ${
+        className={`w-[5rem] like-button flex items-center justify-center gap-2 rounded-2xl border border-white/60 bg-white/70 px-3 py-3 text-xl font-semibold backdrop-blur-sm hover:bg-white ${
           article.isLiked
             ? "text-red-600 w-[5.25rem]"
             : "text-slate-700 hover:text-slate-900"
-        } ${pendingLikeLinks[article.link] ? "cursor-not-allowed opacity-80" : ""} ${
-          likeBurstLinks[article.link]
-            ? "scale-110 shadow-lg shadow-red-100"
-            : "scale-100"
-        }`}
+        } ${pendingLikeLinks[article.link] ? "cursor-not-allowed opacity-80" : ""}`}
       >
         <span className="text-sm font-semibold leading-none">
           {article.likeCount || 0}
@@ -52,15 +46,11 @@ function ArticleReactionBar({
           Boolean(pendingDislikeLinks[article.link]) ||
           Boolean(pendingLikeLinks[article.link])
         }
-        className={`ml-[-2rem] dislike-button flex items-center justify-center gap-1 rounded-2xl border border-white/60 bg-white/70 p-2 text-lg font-semibold backdrop-blur-sm transition duration-300 hover:bg-white ${
+        className={`ml-[-2rem] dislike-button flex items-center justify-center gap-1 rounded-2xl border border-white/60 bg-white/70 p-2 text-lg font-semibold backdrop-blur-sm hover:bg-white ${
           article.isDisliked
             ? "w-[7rem] text-blue-600"
             : "text-slate-700 hover:text-slate-900"
-        } ${pendingDislikeLinks[article.link] ? "cursor-not-allowed opacity-80" : ""} ${
-          dislikeBurstLinks[article.link]
-            ? "scale-110 shadow-lg shadow-blue-100"
-            : "scale-100"
-        }`}
+        } ${pendingDislikeLinks[article.link] ? "cursor-not-allowed opacity-80" : ""}`}
       >
         <span className="text-sm font-semibold leading-none">
           {article.dislikeCount || 0}

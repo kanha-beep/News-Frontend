@@ -11,9 +11,7 @@ export default function NewsFeedView({
   handleToggleLike,
   handleToggleDislike,
   pendingLikeLinks,
-  likeBurstLinks,
   pendingDislikeLinks,
-  dislikeBurstLinks,
   handleCommentClick,
   handleShareArticle,
   activeView,
@@ -50,9 +48,7 @@ export default function NewsFeedView({
         handleToggleLike={handleToggleLike}
         handleToggleDislike={handleToggleDislike}
         pendingLikeLinks={pendingLikeLinks}
-        likeBurstLinks={likeBurstLinks}
         pendingDislikeLinks={pendingDislikeLinks}
-        dislikeBurstLinks={dislikeBurstLinks}
         handleCommentClick={handleCommentClick}
         handleShareArticle={handleShareArticle}
         activeView={activeView}

@@ -15,9 +15,7 @@ function ArticleCard({
   handleToggleLike,
   handleToggleDislike,
   pendingLikeLinks,
-  likeBurstLinks,
   pendingDislikeLinks,
-  dislikeBurstLinks,
   handleCommentClick,
   handleShareArticle,
 }) {
@@ -25,7 +23,7 @@ function ArticleCard({
 
   return (
     <article
-      className="flex h-[calc(100dvh-11.5rem)] flex-col overflow-hidden bg-white px-6 p-3 transition sm:h-[calc(100dvh-20rem)] sm:px-5 sm:pt-5 sm:pb-2"
+      className="feed-card flex h-[calc(100dvh-11.5rem)] flex-col overflow-hidden bg-white px-6 p-3 transition sm:h-[calc(100dvh-20rem)] sm:px-5 sm:pt-5 sm:pb-2"
     >
       <div className="mb-4 flex items-start justify-between gap-3">
         <div className="flex flex-wrap gap-2">
@@ -94,9 +92,7 @@ function ArticleCard({
           handleToggleLike={handleToggleLike}
           handleToggleDislike={handleToggleDislike}
           pendingLikeLinks={pendingLikeLinks}
-          likeBurstLinks={likeBurstLinks}
           pendingDislikeLinks={pendingDislikeLinks}
-          dislikeBurstLinks={dislikeBurstLinks}
           handleCommentClick={handleCommentClick}
           handleShareArticle={handleShareArticle}
         />

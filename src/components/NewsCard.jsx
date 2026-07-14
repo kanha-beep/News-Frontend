@@ -12,9 +12,7 @@ export default function NewsCard({
   handleToggleLike,
   handleToggleDislike,
   pendingLikeLinks,
-  likeBurstLinks,
   pendingDislikeLinks,
-  dislikeBurstLinks,
   handleCommentClick,
   handleShareArticle,
   activeView,
@@ -30,23 +28,23 @@ export default function NewsCard({
     <div className="mx-auto grid max-w-3xl gap-2">
       {news.map((article) => (
         <React.Fragment key={article._id || article.link}>
-          <ArticleCard
-            article={article}
-            applyTagQuery={applyTagQuery}
-            handleToggleFavorite={handleToggleFavorite}
-            textScale={textScale}
-            handleReadArticle={handleReadArticle}
-            handleCreateBlog={handleCreateBlog}
-            handleReadBlog={handleReadBlog}
-            handleToggleLike={handleToggleLike}
-            handleToggleDislike={handleToggleDislike}
-            pendingLikeLinks={pendingLikeLinks}
-            likeBurstLinks={likeBurstLinks}
-            pendingDislikeLinks={pendingDislikeLinks}
-            dislikeBurstLinks={dislikeBurstLinks}
-            handleCommentClick={handleCommentClick}
-            handleShareArticle={handleShareArticle}
-          />
+          <div>
+            <ArticleCard
+              article={article}
+              applyTagQuery={applyTagQuery}
+              handleToggleFavorite={handleToggleFavorite}
+              textScale={textScale}
+              handleReadArticle={handleReadArticle}
+              handleCreateBlog={handleCreateBlog}
+              handleReadBlog={handleReadBlog}
+              handleToggleLike={handleToggleLike}
+              handleToggleDislike={handleToggleDislike}
+              pendingLikeLinks={pendingLikeLinks}
+              pendingDislikeLinks={pendingDislikeLinks}
+              handleCommentClick={handleCommentClick}
+              handleShareArticle={handleShareArticle}
+            />
+          </div>
         </React.Fragment>
       ))}
       {activeView !== "alerts" &&
@@ -54,7 +52,7 @@ export default function NewsCard({
       currentPage < totalPages ? (
         <div
           ref={loadMoreRef}
-          className="flex min-h-24 items-center justify-center rounded-3xl bg-white/70 p-6 text-sm font-semibold text-slate-500"
+          className="feed-loader flex min-h-24 items-center justify-center rounded-3xl bg-white/70 p-6 text-sm font-semibold text-slate-500"
         >
           {refreshing || loading || isLoadingMore
             ? "Loading articles..."

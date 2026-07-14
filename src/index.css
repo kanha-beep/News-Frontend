@@ -40,8 +40,78 @@ body.dark-mode {
   min-height: 100vh;
 }
 
+html {
+  scroll-behavior: smooth;
+}
+
 body.dark-mode #root {
   background-color: #020617;
+}
+
+.pull-refresh-indicator {
+  position: fixed;
+  left: 50%;
+  top: 0.9rem;
+  z-index: 35;
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 14px 32px rgba(15, 23, 42, 0.12);
+  opacity: 0;
+  padding: 0.7rem 1rem;
+  pointer-events: none;
+  transition:
+    opacity 180ms ease,
+    transform 220ms cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 220ms ease;
+}
+
+.pull-refresh-indicator.is-visible {
+  opacity: 1;
+}
+
+.pull-refresh-indicator.is-ready {
+  box-shadow: 0 18px 40px rgba(37, 99, 235, 0.18);
+}
+
+.pull-refresh-spinner {
+  height: 1rem;
+  width: 1rem;
+  border: 2px solid rgba(148, 163, 184, 0.35);
+  border-top-color: #2563eb;
+  border-radius: 9999px;
+  transform: rotate(0deg);
+}
+
+.pull-refresh-indicator.is-ready .pull-refresh-spinner {
+  border-top-color: #0f172a;
+}
+
+.pull-refresh-indicator.is-refreshing .pull-refresh-spinner {
+  animation: pull-refresh-spin 0.8s linear infinite;
+}
+
+.pull-refresh-label {
+  color: #334155;
+  font-size: 0.82rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.feed-card,
+.feed-loader {
+  scroll-margin-top: 8.5rem;
+}
+
+@keyframes pull-refresh-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 @keyframes loader-shimmer {
@@ -221,4 +291,36 @@ body.dark-mode .shadow-sm,
 body.dark-mode .shadow-lg,
 body.dark-mode .shadow-xl {
   box-shadow: 0 16px 40px rgba(2, 6, 23, 0.45) !important;
+}
+
+body.dark-mode .pull-refresh-indicator {
+  background: rgba(15, 23, 42, 0.94);
+  box-shadow: 0 18px 36px rgba(2, 6, 23, 0.5);
+}
+
+body.dark-mode .pull-refresh-label {
+  color: #e2e8f0;
+}
+
+body.dark-mode .pull-refresh-spinner {
+  border-color: rgba(71, 85, 105, 0.45);
+  border-top-color: #93c5fd;
+}
+
+body.dark-mode .pull-refresh-indicator.is-ready .pull-refresh-spinner {
+  border-top-color: #e2e8f0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  .pull-refresh-indicator {
+    transition: opacity 180ms ease;
+  }
+
+  .pull-refresh-indicator.is-refreshing .pull-refresh-spinner {
+    animation: none;
+  }
 }
