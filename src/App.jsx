@@ -1750,11 +1750,11 @@ function App() {
   };
 
   const increaseTextScale = () => {
-    setTextScale((prev) => Math.min(1.35, Number((prev + 0.1).toFixed(2))));
+    setTextScale((prev) => Math.min(1.5, Number((prev + 0.1).toFixed(2))));
   };
 
   const decreaseTextScale = () => {
-    setTextScale((prev) => Math.max(0.9, Number((prev - 0.1).toFixed(2))));
+    setTextScale((prev) => Math.max(0.8, Number((prev - 0.1).toFixed(2))));
   };
 
   const resetPullGesture = () => {
