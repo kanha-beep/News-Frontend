@@ -23,7 +23,8 @@ function ArticleCard({
 
   return (
     <article
-      className="feed-card flex h-[calc(100dvh-11.5rem)] flex-col overflow-hidden bg-white px-6 p-3 transition sm:h-[calc(100dvh-20rem)] sm:px-5 sm:pt-5 sm:pb-2"
+      className="feed-card flex h-[calc(100dvh-16rem)] flex-col overflow-hidden bg-white px-6 p-3 transition sm:h-[calc(100dvh-20rem)] sm:px-5 sm:pt-5 sm:pb-2"
+      // onClick={() => handleReadArticle(article.link)}
     >
       <div className="mb-4 flex items-start justify-between gap-3">
         <div className="flex flex-wrap gap-2">
@@ -64,18 +65,20 @@ function ArticleCard({
             fontSize: `${2 * textScale}rem`,
             lineHeight: 1.1,
           }}
+           onClick={() => handleReadArticle(article.link)}
         >
           {article.title}
         </h2>
 
         <p
           className="line-clamp-2 min-h-0 overflow-hidden text-slate-600"
+           onClick={() => handleReadArticle(article.link)}
           style={{
-            fontSize: `${1.125 * textScale}rem`,
+            fontSize: `${1.35 * textScale}rem`,
             lineHeight: 1.5,
           }}
         >
-          {article.description || "No description available."}
+          {article.description || "READ here"}
         </p>
       </div>
 

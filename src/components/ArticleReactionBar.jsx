@@ -35,7 +35,7 @@ function ArticleReactionBar({
           {article.likeCount || 0}
         </span>
         <span className="text-sm ml-[-0.2rem]">
-          {article.isLiked ? "Liked" : "Like it"}
+          {article.isLiked ? "Real" : "Real"}
         </span>
         {/* {article.isLiked ? <FaHeart /> : <FaRegHeart />} */}
       </button>
@@ -57,7 +57,7 @@ function ArticleReactionBar({
         </span>
 
         <span className="text-sm">
-          {article.isDisliked ? "Disliked" : "Dislike it"}
+          {article.isDisliked ? "Manipulative" : "Manipulative"}
         </span>
       </button>
       <button
