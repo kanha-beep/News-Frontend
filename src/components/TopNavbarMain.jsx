@@ -70,7 +70,7 @@ function TopNavbarMain({
         ) : null}
 
         <div className="ml-auto flex shrink-0 flex-col items-end gap-3">
-          <div className="flex flex-col items-end gap-3">
+          <div className="flex flex-col items-end gap-1">
             <div className="flex items-center justify-center gap-1 rounded-2xl bg-slate-900 px-2 py-1 text-xs font-semibold text-white">
               <button
                 type="button"
