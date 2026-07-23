@@ -68,7 +68,7 @@ function ArticleReactionBar({
         <span className="text-xs font-semibold leading-none">
           {article.commentCount || 0}
         </span>
-        <FaCommentDots />
+        {/* <FaCommentDots /> */}Comment Opinion
       </button>
     </div>
   );
