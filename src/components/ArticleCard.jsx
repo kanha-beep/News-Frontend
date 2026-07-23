@@ -60,7 +60,7 @@ function ArticleCard({
           {article.pubDate || "No publish date"}
         </p>
 
-        {preferredLanguage !== "en" ? (
+        {/* {preferredLanguage !== "en" ? (
           <div className="mb-3 flex">
             <span
               className={`rounded-full px-3 py-1 text-[11px] font-semibold ${
@@ -78,7 +78,7 @@ function ArticleCard({
                   : "Pending"}
             </span>
           </div>
-        ) : null}
+        ) : null} */}
 
         <h2
           className="mb-3 font-bold text-slate-900"
