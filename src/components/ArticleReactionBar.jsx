@@ -39,7 +39,7 @@ function ArticleReactionBar({
           Boolean(pendingDislikeLinks[article.link]) ||
           Boolean(pendingLikeLinks[article.link])
         }
-        className={`dislike-button ml-[-2rem] flex items-center justify-center gap-1 rounded-2xl border border-white/60 bg-white/70 p-2 text-lg font-semibold backdrop-blur-sm hover:bg-white ${
+        className={`dislike-button ml-[-0.2rem] flex items-center justify-center gap-1 rounded-2xl border border-white/60 bg-white/70 p-2 text-lg font-semibold backdrop-blur-sm hover:bg-white ${
           article.isDisliked
             ? "w-[7rem] text-blue-600"
             : "text-slate-700 hover:text-slate-900"
@@ -63,7 +63,7 @@ function ArticleReactionBar({
         <span className="text-xs font-semibold leading-none">
           {article.commentCount || 0}
         </span>
-        <span className="text-sm font-semibold">
+        <span className="text-sm font-semibold leading-none">
           {uiLabels?.comment || "Comment"}
         </span>
       </button>
