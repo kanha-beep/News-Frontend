@@ -14,7 +14,7 @@ function ArticleActionBar({
       <button
         type="button"
         onClick={() => handleReadArticle(article.link)}
-        className="ml-[1rem] flex items-center justify-center rounded-2xl border border-white/60 bg-white/70 p-3 text-slate-900 backdrop-blur-sm transition hover:bg-white hover:text-slate-700"
+        className="ml-[0.5rem] flex items-center justify-center rounded-2xl border border-white/60 bg-white/70 p-3 text-slate-900 backdrop-blur-sm transition hover:bg-white hover:text-slate-700"
         aria-label={uiLabels?.readArticle || "Read article"}
         title={uiLabels?.readArticle || "Read article"}
       >
