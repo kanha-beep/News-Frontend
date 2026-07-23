@@ -3,6 +3,7 @@ import ArticleCard from "./ArticleCard.jsx";
 
 export default function NewsCard({
   news,
+  preferredLanguage,
   applyTagQuery,
   handleToggleFavorite,
   textScale,
@@ -31,6 +32,7 @@ export default function NewsCard({
           <div>
             <ArticleCard
               article={article}
+              preferredLanguage={preferredLanguage}
               applyTagQuery={applyTagQuery}
               handleToggleFavorite={handleToggleFavorite}
               textScale={textScale}

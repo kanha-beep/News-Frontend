@@ -1,7 +1,10 @@
 import NewsCard from "../NewsCard.jsx";
+import { getLanguageLabel } from "../appHelpers.js";
 
 export default function NewsFeedView({
   news,
+  preferredLanguage,
+  translationStatus,
   applyTagQuery,
   handleToggleFavorite,
   textScale,
@@ -37,8 +40,23 @@ export default function NewsFeedView({
 
   return (
     <>
+      {/* {preferredLanguage !== "en" && translationStatus ? (
+        <div
+          className={`mb-4 rounded-2xl px-4 py-3 text-sm font-medium ${
+            translationStatus.fallbackToEnglish
+              ? "border border-amber-200 bg-amber-50 text-amber-800"
+              : "border border-emerald-200 bg-emerald-50 text-emerald-800"
+          }`}
+        >
+          {translationStatus.fallbackToEnglish
+            ? `${getLanguageLabel(preferredLanguage)} requested, but ${translationStatus.skippedCount} article(s) are still falling back to English.`
+            : `${getLanguageLabel(preferredLanguage)} translation active for ${translationStatus.translatedCount} article(s).`}
+        </div>
+      ) : null} */}
+
       <NewsCard
         news={news}
+        preferredLanguage={preferredLanguage}
         applyTagQuery={applyTagQuery}
         handleToggleFavorite={handleToggleFavorite}
         textScale={textScale}

@@ -6,6 +6,7 @@ import ArticleReactionBar from "./ArticleReactionBar.jsx";
 
 function ArticleCard({
   article,
+  preferredLanguage,
   applyTagQuery,
   handleToggleFavorite,
   textScale,
@@ -59,6 +60,26 @@ function ArticleCard({
           {article.pubDate || "No publish date"}
         </p>
 
+        {preferredLanguage !== "en" ? (
+          <div className="mb-3 flex">
+            <span
+              className={`rounded-full px-3 py-1 text-[11px] font-semibold ${
+                article.translationSkipped
+                  ? "bg-amber-100 text-amber-800"
+                  : article.translatedLanguage === preferredLanguage
+                    ? "bg-emerald-100 text-emerald-800"
+                    : "bg-slate-100 text-slate-600"
+              }`}
+            >
+              {article.translationSkipped
+                ? "English fallback"
+                : article.translatedLanguage === preferredLanguage
+                  ? "Translated"
+                  : "Pending"}
+            </span>
+          </div>
+        ) : null}
+
         <h2
           className="mb-3 font-bold text-slate-900"
           style={{
@@ -72,7 +93,7 @@ function ArticleCard({
 
         <p
           className="line-clamp-2 min-h-0 overflow-hidden text-slate-600"
-           onClick={() => handleReadArticle(article.link)}
+          //  onClick={() => handleReadArticle(article.link)}
           style={{
             fontSize: `${1.35 * textScale}rem`,
             lineHeight: 1.5,

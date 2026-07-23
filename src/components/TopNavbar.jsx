@@ -4,7 +4,7 @@ import { useAppContext } from "../context/AppContext.jsx";
 
 export default function TopNavbar({
   toggleThemeMode,
-  handleRefresh,
+  handleLanguageChange,
   pendingLatestNews,
   handleApplyLatestNews,
   increaseTextScale,
@@ -18,6 +18,7 @@ export default function TopNavbar({
     setActiveView,
     token,
     isDarkMode,
+    preferredLanguage,
     textScale,
   } = useAppContext();
 
@@ -32,10 +33,11 @@ export default function TopNavbar({
   ) : (
     <TopNavbarMain
       toggleThemeMode={toggleThemeMode}
-      handleRefresh={handleRefresh}
+      handleLanguageChange={handleLanguageChange}
       pendingLatestNews={pendingLatestNews}
       handleApplyLatestNews={handleApplyLatestNews}
       isDarkMode={isDarkMode}
+      preferredLanguage={preferredLanguage}
       textScale={textScale}
       decreaseTextScale={decreaseTextScale}
       increaseTextScale={increaseTextScale}

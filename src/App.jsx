@@ -19,6 +19,8 @@ import {
   API_BASE_URL,
   ARTICLE_SHARE_PARAM,
   BLOG_APP_URL,
+  getLanguageLabel,
+  LANGUAGE_STORAGE_KEY,
   NEWS_CACHE_KEY,
   TAGS_CACHE_KEY,
   TOKEN_STORAGE_KEY,
@@ -58,6 +60,9 @@ function App() {
   const [isDarkMode, setIsDarkMode] = useState(
     () => localStorage.getItem(THEME_STORAGE_KEY) === "dark",
   );
+  const [preferredLanguage, setPreferredLanguage] = useState(
+    () => localStorage.getItem(LANGUAGE_STORAGE_KEY) || "en",
+  );
   const [currentUser, setCurrentUser] = useState(null);
   const [activeView, setActiveView] = useState(() => getInitialViewFromUrl());
   const [tagQuery, setTagQuery] = useState("");
@@ -82,6 +87,7 @@ function App() {
   const [refreshing, setRefreshing] = useState(false);
   const [pendingLatestNews, setPendingLatestNews] = useState(null);
   const [pendingLatestTags, setPendingLatestTags] = useState([]);
+  const [translationStatus, setTranslationStatus] = useState(null);
   const [error, setError] = useState("");
   const [toast, setToast] = useState({
     show: false,
@@ -139,6 +145,7 @@ function App() {
     token,
     setToken,
     isDarkMode,
+    preferredLanguage,
     currentUser,
     setCurrentUser,
     activeView,
@@ -170,6 +177,7 @@ function App() {
     });
     setTotalItems(payload?.total || 0);
     setTotalPages(payload?.totalPages || 1);
+    setTranslationStatus(payload?.translation || null);
   };
 
   const cacheDefaultFeed = (payload, tags = availableTags) => {
@@ -177,6 +185,7 @@ function App() {
       items: payload?.items || [],
       total: payload?.total || 0,
       totalPages: payload?.totalPages || 1,
+      language: preferredLanguage,
       savedAt: new Date().toISOString(),
     });
     cacheJsonValue(TAGS_CACHE_KEY, tags || []);
@@ -429,10 +438,11 @@ function App() {
     append = false,
     shouldApply = true,
   ) => {
-    if (view === "favorites" && !authToken) {
+      if (view === "favorites" && !authToken) {
       setNews([]);
       setTotalItems(0);
       setTotalPages(1);
+      setTranslationStatus(null);
       return {
         items: [],
         total: 0,
@@ -447,6 +457,7 @@ function App() {
         date: date || "",
         page,
         favoritesOnly: view === "favorites",
+        language: preferredLanguage,
       },
       headers: authToken
         ? {
@@ -458,6 +469,7 @@ function App() {
       items: res.data?.items || [],
       total: res.data?.total || 0,
       totalPages: res.data?.totalPages || 1,
+      translation: res.data?.translation || null,
     };
 
     if (shouldApply) {
@@ -482,7 +494,10 @@ function App() {
     }
 
     const res = await axios.get(`${API_BASE_URL}/api/news/article`, {
-      params: { link: normalizedLink },
+      params: {
+        link: normalizedLink,
+        language: preferredLanguage,
+      },
       headers: authToken
         ? {
             Authorization: `Bearer ${authToken}`,
@@ -503,7 +518,13 @@ function App() {
   };
 
   const syncNews = async () => {
-    await axios.get(`${API_BASE_URL}/api/hindu`);
+    await axios.get(`${API_BASE_URL}/api/hindu`, {
+      headers: token
+        ? {
+            Authorization: `Bearer ${token}`,
+          }
+        : {},
+    });
   };
 
   const selectedTags = parseSelectedTags(tagQuery);
@@ -542,6 +563,16 @@ function App() {
   }, [isDarkMode]);
 
   useEffect(() => {
+    localStorage.setItem(LANGUAGE_STORAGE_KEY, preferredLanguage);
+  }, [preferredLanguage]);
+
+  useEffect(() => {
+    if (currentUser?.preferredLanguage && currentUser.preferredLanguage !== preferredLanguage) {
+      setPreferredLanguage(currentUser.preferredLanguage);
+    }
+  }, [currentUser, preferredLanguage]);
+
+  useEffect(() => {
     updateUrlParams({ view: activeView });
   }, [activeView]);
 
@@ -572,8 +603,11 @@ function App() {
     const bootstrap = async () => {
       const cachedPayload = getCachedNewsPayload();
       const cachedTags = getCachedTags();
+      const canUseCachedNews =
+        cachedPayload.language === preferredLanguage &&
+        (cachedPayload.items || []).length > 0;
       const hasCachedNews =
-        !sharedArticleLink && (cachedPayload.items || []).length > 0;
+        !sharedArticleLink && canUseCachedNews;
 
       setLoading(!hasCachedNews);
       updateLoadingProgress(hasCachedNews ? 100 : 0);
@@ -679,7 +713,7 @@ function App() {
     };
 
     bootstrap();
-  }, []);
+  }, [preferredLanguage]);
 
   useEffect(() => {
     if (!loading) {
@@ -1741,6 +1775,71 @@ function App() {
     setIsDarkMode((prev) => !prev);
   };
 
+  const handleLanguageChange = async (nextLanguage) => {
+    if (!nextLanguage || nextLanguage === preferredLanguage) {
+      return;
+    }
+
+    const previousLanguage = preferredLanguage;
+
+    setPreferredLanguage(nextLanguage);
+    setRefreshing(true);
+    setError("");
+    setCurrentPage(1);
+
+    try {
+      if (token) {
+        const res = await axios.put(
+          `${API_BASE_URL}/api/auth/preferences/language`,
+          { language: nextLanguage },
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          },
+        );
+
+        setCurrentUser(res.data?.user || currentUser);
+      }
+
+      await syncNews();
+
+      if (activeView === "alerts") {
+        await Promise.all([loadAlerts(), loadPushStatus()]);
+      } else if (sharedArticleLink) {
+        await loadSharedArticle(sharedArticleLink, token, true);
+      } else {
+        const payload = await loadNews(
+          activeView,
+          tagQuery,
+          titleQuery,
+          dateFilter,
+          1,
+          token,
+          false,
+          true,
+        );
+
+        if (isDefaultFeedRequest(activeView, tagQuery, titleQuery, dateFilter)) {
+          cacheDefaultFeed(payload);
+        }
+      }
+
+      setPendingLatestNews(null);
+      setPendingLatestTags([]);
+      setToast({
+        show: true,
+        message: `${getLanguageLabel(nextLanguage)} feed enabled`,
+        type: "success",
+      });
+    } catch (err) {
+      setPreferredLanguage(previousLanguage);
+      setError(err?.response?.data?.message || "Unable to switch language.");
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
   const openTagBrowser = () => {
     setIsMobileTagMenuOpen(true);
   };
@@ -1870,6 +1969,7 @@ function App() {
           <div className="mx-auto max-w-7xl">
             <TopNavbar
               toggleThemeMode={toggleThemeMode}
+              handleLanguageChange={handleLanguageChange}
               handleRefresh={handleRefresh}
               pendingLatestNews={pendingLatestNews}
               handleApplyLatestNews={handleApplyLatestNews}
@@ -1938,6 +2038,7 @@ function App() {
           >
           <TopNavbar
             toggleThemeMode={toggleThemeMode}
+            handleLanguageChange={handleLanguageChange}
             handleRefresh={handleRefresh}
             pendingLatestNews={pendingLatestNews}
             handleApplyLatestNews={handleApplyLatestNews}
@@ -2051,8 +2152,10 @@ function App() {
                     handleDeleteAlert={handleDeleteAlert}
                   />
                 ) : (
-                  <NewsFeedView
+              <NewsFeedView
                     news={news}
+                    preferredLanguage={preferredLanguage}
+                    translationStatus={translationStatus}
                     applyTagQuery={applyTagQuery}
                     handleToggleFavorite={handleToggleFavorite}
                     textScale={textScale}

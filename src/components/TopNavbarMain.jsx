@@ -1,19 +1,14 @@
 import { memo } from "react";
-import {
-  FaArrowUp,
-  FaMinus,
-  FaMoon,
-  FaPlus,
-  FaSun,
-  FaSyncAlt,
-} from "react-icons/fa";
+import { FaArrowUp, FaMinus, FaMoon, FaPlus, FaSun } from "react-icons/fa";
+import { LANGUAGE_OPTIONS, getLanguageLabel } from "./appHelpers.js";
 
 function TopNavbarMain({
   toggleThemeMode,
-  handleRefresh,
+  handleLanguageChange,
   pendingLatestNews,
   handleApplyLatestNews,
   isDarkMode,
+  preferredLanguage,
   textScale,
   decreaseTextScale,
   increaseTextScale,
@@ -38,15 +33,28 @@ function TopNavbarMain({
           >
             {isDarkMode ? <FaSun /> : <FaMoon />}
           </button>
-          {/* <button
-            type="button"
-            onClick={handleRefresh}
-            className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-600 text-sm font-semibold text-white hover:bg-blue-700"
-            aria-label="Refresh"
-            title="Refresh"
-          >
-            <FaSyncAlt />
-          </button> */}
+          <label className="rounded-full bg-slate-200 px-3 text-sm font-semibold text-slate-700">
+            <span className="sr-only">Choose language</span>
+            <select
+              value={preferredLanguage}
+              onChange={(event) => handleLanguageChange(event.target.value)}
+              className="h-10 w-[5.5rem] rounded-full bg-transparent pr-2 outline-none"
+              aria-label="Choose language"
+              title={`Language: ${getLanguageLabel(preferredLanguage)}`}
+            >
+              {LANGUAGE_OPTIONS.map((language) => (
+                <option
+                  key={language.code}
+                  value={language.code}
+                  disabled={!language.googleSupported}
+                >
+                  {language.googleSupported
+                    ? language.label
+                    : `${language.label} (Google unavailable)`}
+                </option>
+              ))}
+            </select>
+          </label>
         </div>
         {pendingLatestNews ? (
           <button

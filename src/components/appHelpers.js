@@ -7,8 +7,34 @@ export const BLOG_APP_URL =
   "https://blogs-frontend-omega.vercel.app";
 export const BLOG_SYNC_API_URL = `${BLOG_APP_URL}/api/auth/sync-login`;
 export const THEME_STORAGE_KEY = "newsThemeMode";
+export const LANGUAGE_STORAGE_KEY = "newsLanguage";
 export const NEWS_CACHE_KEY = "newsFeedCache";
 export const TAGS_CACHE_KEY = "newsTagsCache";
+export const LANGUAGE_OPTIONS = [
+  { code: "en", label: "English", scheduled: false, googleSupported: true },
+  { code: "as", label: "Assamese", scheduled: true, googleSupported: true },
+  { code: "bn", label: "Bengali", scheduled: true, googleSupported: true },
+  { code: "brx", label: "Bodo", scheduled: true, googleSupported: false },
+  { code: "doi", label: "Dogri", scheduled: true, googleSupported: true },
+  { code: "gu", label: "Gujarati", scheduled: true, googleSupported: true },
+  { code: "hi", label: "Hindi", scheduled: true, googleSupported: true },
+  { code: "kn", label: "Kannada", scheduled: true, googleSupported: true },
+  { code: "ks", label: "Kashmiri", scheduled: true, googleSupported: false },
+  { code: "gom", label: "Konkani", scheduled: true, googleSupported: true },
+  { code: "mai", label: "Maithili", scheduled: true, googleSupported: true },
+  { code: "ml", label: "Malayalam", scheduled: true, googleSupported: true },
+  { code: "mni-Mtei", label: "Manipuri", scheduled: true, googleSupported: true },
+  { code: "mr", label: "Marathi", scheduled: true, googleSupported: true },
+  { code: "ne", label: "Nepali", scheduled: true, googleSupported: true },
+  { code: "or", label: "Odia", scheduled: true, googleSupported: true },
+  { code: "pa", label: "Punjabi", scheduled: true, googleSupported: true },
+  { code: "sa", label: "Sanskrit", scheduled: true, googleSupported: true },
+  { code: "sat", label: "Santali", scheduled: true, googleSupported: false },
+  { code: "sd", label: "Sindhi", scheduled: true, googleSupported: true },
+  { code: "ta", label: "Tamil", scheduled: true, googleSupported: true },
+  { code: "te", label: "Telugu", scheduled: true, googleSupported: true },
+  { code: "ur", label: "Urdu", scheduled: true, googleSupported: true },
+];
 export const ARTICLE_SHARE_PARAM = "article";
 export const VIEW_QUERY_PARAM = "view";
 export const SUPPORTED_VIEWS = new Set(["all", "favorites", "alerts"]);
@@ -119,6 +145,9 @@ export const getCachedTags = () =>
   sanitizeVisibleTags(readCachedJson(TAGS_CACHE_KEY, []));
 
 export const cacheJsonValue = writeCachedJson;
+
+export const getLanguageLabel = (code) =>
+  LANGUAGE_OPTIONS.find((language) => language.code === code)?.label || "English";
 
 export const getInitialSharedArticleLink = () => {
   try {
