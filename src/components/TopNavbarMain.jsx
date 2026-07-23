@@ -81,7 +81,7 @@ function TopNavbarMain({
                 <FaMinus className="text-xs" />
               </button>
               <span className="min-w-[3.5rem] text-center text-[11px]">
-                Text {Math.round(textScale * 100)}%
+                {Math.round(textScale * 100)}%
               </span>
               <button
                 type="button"
