@@ -3,6 +3,15 @@ import axios from "axios";
 export const API_BASE_URL = import.meta.env.VITE_API_URI;
 export const TRANSLATION_SERVICE_URL =
   import.meta.env.VITE_TRANSLATION_SERVICE_URL || "";
+export const DEFAULT_UI_LABELS = {
+  readArticle: "Read article",
+  writeOpinion: "Write opinion",
+  readBlog: "Read blog",
+  shareArticle: "Share article",
+  real: "Real",
+  manipulative: "Manipulative",
+  comment: "Comment",
+};
 export const TOKEN_STORAGE_KEY = "newsAuthToken";
 export const BLOG_APP_URL =
   import.meta.env.VITE_BLOG_APP_URL ||

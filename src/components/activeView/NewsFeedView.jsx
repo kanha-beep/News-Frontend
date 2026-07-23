@@ -4,6 +4,7 @@ import { getLanguageLabel } from "../appHelpers.js";
 export default function NewsFeedView({
   news,
   preferredLanguage,
+  uiLabels,
   translationStatus,
   applyTagQuery,
   handleToggleFavorite,
@@ -57,6 +58,7 @@ export default function NewsFeedView({
       <NewsCard
         news={news}
         preferredLanguage={preferredLanguage}
+        uiLabels={uiLabels}
         applyTagQuery={applyTagQuery}
         handleToggleFavorite={handleToggleFavorite}
         textScale={textScale}

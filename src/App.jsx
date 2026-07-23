@@ -19,6 +19,7 @@ import {
   API_BASE_URL,
   ARTICLE_SHARE_PARAM,
   BLOG_APP_URL,
+  DEFAULT_UI_LABELS,
   getLanguageLabel,
   LANGUAGE_STORAGE_KEY,
   NEWS_CACHE_KEY,
@@ -88,6 +89,7 @@ function App() {
   const [pendingLatestNews, setPendingLatestNews] = useState(null);
   const [pendingLatestTags, setPendingLatestTags] = useState([]);
   const [translationStatus, setTranslationStatus] = useState(null);
+  const [uiLabels, setUiLabels] = useState(DEFAULT_UI_LABELS);
   const [error, setError] = useState("");
   const [toast, setToast] = useState({
     show: false,
@@ -360,6 +362,34 @@ function App() {
     return items;
   };
 
+  const loadUiLabels = async (language = preferredLanguage, authToken = token) => {
+    if (!language || language === "en") {
+      setUiLabels(DEFAULT_UI_LABELS);
+      return DEFAULT_UI_LABELS;
+    }
+
+    try {
+      const res = await axios.get(`${API_BASE_URL}/api/translations/ui`, {
+        params: { language },
+        headers: authToken
+          ? {
+              Authorization: `Bearer ${authToken}`,
+            }
+          : undefined,
+      });
+
+      const nextLabels = {
+        ...DEFAULT_UI_LABELS,
+        ...(res.data?.labels || {}),
+      };
+      setUiLabels(nextLabels);
+      return nextLabels;
+    } catch {
+      setUiLabels(DEFAULT_UI_LABELS);
+      return DEFAULT_UI_LABELS;
+    }
+  };
+
   const loadPushStatus = async (authToken = token) => {
     const supported =
       typeof window !== "undefined" &&
@@ -565,6 +595,10 @@ function App() {
   useEffect(() => {
     localStorage.setItem(LANGUAGE_STORAGE_KEY, preferredLanguage);
   }, [preferredLanguage]);
+
+  useEffect(() => {
+    loadUiLabels(preferredLanguage, token);
+  }, [preferredLanguage, token]);
 
   useEffect(() => {
     if (currentUser?.preferredLanguage && currentUser.preferredLanguage !== preferredLanguage) {
@@ -1783,6 +1817,7 @@ function App() {
     const previousLanguage = preferredLanguage;
 
     setPreferredLanguage(nextLanguage);
+    setUiLabels(DEFAULT_UI_LABELS);
     setRefreshing(true);
     setError("");
     setCurrentPage(1);
@@ -2155,6 +2190,7 @@ function App() {
               <NewsFeedView
                     news={news}
                     preferredLanguage={preferredLanguage}
+                    uiLabels={uiLabels}
                     translationStatus={translationStatus}
                     applyTagQuery={applyTagQuery}
                     handleToggleFavorite={handleToggleFavorite}
