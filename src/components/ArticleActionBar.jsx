@@ -37,9 +37,9 @@ function ArticleActionBar({
             ? handleReadBlog(article.blogId)
             : handleCreateBlog(article)
         }
-        className="w-[8rem] text-[0.7rem] justify-between items-center rounded-2xl border border-white/60 bg-white/60 font-semibold text-slate-900 backdrop-blur-sm transition hover:bg-white hover:text-slate-700"
+        className="w-[8rem] text-sm font-semibold justify-between items-center rounded-2xl border border-white/60 bg-white/60 font-semibold text-slate-900 backdrop-blur-sm transition hover:bg-white hover:text-slate-700"
       >
-        {article.blogId ? "Read Blog" : "Write your opinion"}
+        {article.blogId ? "Read Blog" : "Write Opinion"}
       </button>
       <button
         type="button"
