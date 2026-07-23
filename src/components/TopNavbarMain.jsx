@@ -17,11 +17,12 @@ function TopNavbarMain({
     <nav className="fixed inset-x-0 top-0 z-30 overflow-x-auto bg-white p-4">
       <div className="flex min-w-max flex-nowrap items-start gap-4">
         <div className="shrink-0">
-          <img
+          <div className="honesty">NewsHonesty</div>
+          {/* <img
             src="/lightning-news-logo.png"
             alt="NewsHonesty logo"
             className="h-14 w-14 rounded-full object-cover"
-          />
+          /> */}
         </div>
         <div className="flex shrink-0 gap-3">
           <button
