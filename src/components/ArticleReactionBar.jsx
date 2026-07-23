@@ -60,7 +60,7 @@ function ArticleReactionBar({
         aria-label={uiLabels?.comment || "Comment"}
         title={uiLabels?.comment || "Comment"}
       >
-        <span className="text-xs font-semibold leading-none">
+        <span className="text-sm font-semibold leading-none">
           {article.commentCount || 0}
         </span>
         <span className="text-sm font-semibold leading-none">
