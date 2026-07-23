@@ -1333,7 +1333,7 @@ function App() {
     const shareUrl = appUrl.toString();
     const sharePayload = {
       title: article.title || "News article",
-      text: article.title || "Open this news in Lightning News",
+      text: article.title || "Open this news in NewsHonesty",
       url: shareUrl,
     };
 

@@ -24,7 +24,7 @@ function TopNavbarMain({
         <div className="shrink-0">
           <img
             src="/lightning-news-logo.png"
-            alt="Lightning News logo"
+            alt="NewsHonesty logo"
             className="h-14 w-14 rounded-full object-cover"
           />
         </div>
