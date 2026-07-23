@@ -32,17 +32,18 @@ export default function BottomNavbar({
             icon={<FaBookmark className="text-base" />}
             label="Saved"
           />
+           <BottomNavItem
+            onClick={openSearchModal}
+            icon={<FaSearch className="text-base" />}
+            label="Search"
+          />
           <BottomNavItem
             isActive={activeView === "alerts"}
             onClick={() => handleViewChange("alerts")}
             icon={<FaRegBell className="text-base" />}
             label="Alerts"
           />
-          <BottomNavItem
-            onClick={openSearchModal}
-            icon={<FaSearch className="text-base" />}
-            label="Search"
-          />
+         
           <BottomNavItem
             onClick={openTagBrowser}
             icon={<FaFilter className="text-base" />}
