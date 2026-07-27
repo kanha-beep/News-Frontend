@@ -6,6 +6,7 @@ export default function MobileTagMenu({
   selectedTags,
   filteredBrowserTags,
   selectedTagSet,
+  uiLabels,
 }) {
   return (
     <div className="fixed inset-0 z-40 flex items-center justify-center bg-slate-900/50 px-4">
@@ -13,10 +14,10 @@ export default function MobileTagMenu({
         <div className="mb-4 flex items-start justify-between gap-4">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.24em] text-blue-600">
-              Browse Tags
+              {uiLabels?.browseTags || "Browse tags"}
             </p>
             <h2 className="mt-2 text-lg font-bold text-slate-900">
-              Filter by category
+              {uiLabels?.filterByCategory || "Filter by category"}
             </h2>
           </div>
           <button
@@ -24,7 +25,7 @@ export default function MobileTagMenu({
             onClick={() => setIsMobileTagMenuOpen(false)}
             className="rounded-full bg-slate-200 px-3 py-2 text-sm font-semibold text-slate-700"
           >
-            Close
+            {uiLabels?.close || "Close"}
           </button>
         </div>
 
@@ -32,7 +33,7 @@ export default function MobileTagMenu({
           <input
             value={tagBrowserQuery}
             onChange={(e) => setTagBrowserQuery(e.target.value)}
-            placeholder="Search tags..."
+            placeholder={uiLabels?.searchTagsPlaceholder || "Search tags..."}
             className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none transition focus:border-blue-500"
           />
         </div>
@@ -47,7 +48,7 @@ export default function MobileTagMenu({
                 : "bg-slate-900 text-white"
             }`}
           >
-            All Tags
+            {uiLabels?.allTags || "All tags"}
           </button>
 
           {filteredBrowserTags.map((tag) => {

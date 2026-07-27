@@ -2,7 +2,6 @@ import { memo } from "react";
 
 function ArticleReactionBar({
   article,
-  uiLabels,
   handleToggleLike,
   handleToggleDislike,
   pendingLikeLinks,
@@ -27,9 +26,7 @@ function ArticleReactionBar({
         <span className="text-sm font-semibold leading-none">
           {article.likeCount || 0}
         </span>
-        <span className="ml-[-0.2rem] text-sm">
-          {uiLabels?.real || "Real"}
-        </span>
+        <span className="ml-[-0.2rem] text-sm">Real</span>
       </button>
 
       <button
@@ -48,24 +45,20 @@ function ArticleReactionBar({
         <span className="text-sm font-semibold leading-none">
           {article.dislikeCount || 0}
         </span>
-        <span className="text-sm">
-          {uiLabels?.manipulative || "Manipulative"}
-        </span>
+        <span className="text-sm">Manipulative</span>
       </button>
 
       <button
         type="button"
         onClick={() => handleCommentClick(article)}
         className="flex items-center justify-center gap-1 rounded-2xl border border-white/60 bg-white/70 px-3 py-3 text-xl font-semibold text-slate-900 backdrop-blur-sm transition hover:bg-white hover:text-slate-700"
-        aria-label={uiLabels?.comment || "Comment"}
-        title={uiLabels?.comment || "Comment"}
+        aria-label="Comment"
+        title="Comment"
       >
         <span className="text-sm font-semibold leading-none">
           {article.commentCount || 0}
         </span>
-        <span className="text-sm font-semibold leading-none">
-          {uiLabels?.comment || "Comment"}
-        </span>
+        <span className="text-sm font-semibold leading-none">Comment</span>
       </button>
     </div>
   );

@@ -7,23 +7,24 @@ function PushNotificationPanel({
   handleSendTestPush,
   loadPushStatus,
   token,
+  uiLabels,
 }) {
   return (
     <div className="rounded-2xl bg-white p-5 shadow-sm">
       <p className="text-xs font-semibold uppercase tracking-[0.24em] text-blue-600">
-        Push Notifications
+        {uiLabels?.pushNotifications || "Push notifications"}
       </p>
       <h2 className="mt-2 text-xl font-bold text-slate-900">
-        Saved alert delivery
+        {uiLabels?.savedAlertDelivery || "Saved alert delivery"}
       </h2>
       <p className="mt-2 text-sm text-slate-500">
         {pushState.supported
           ? pushState.enabled
-            ? "Notifications are enabled for this browser."
+            ? uiLabels?.notificationsEnabled || "Notifications are enabled for this browser."
             : pushState.permission === "denied"
-              ? "Notifications are blocked in browser settings."
-              : "Enable browser notifications to receive saved alert matches."
-          : "This browser does not support web push notifications."}
+              ? uiLabels?.notificationsBlocked || "Notifications are blocked in browser settings."
+              : uiLabels?.enableBrowserNotifications || "Enable browser notifications to receive saved alert matches."
+          : uiLabels?.noPushSupport || "This browser does not support web push notifications."}
       </p>
       <div className="mt-4 flex flex-wrap gap-3">
         <button
@@ -35,10 +36,10 @@ function PushNotificationPanel({
           } disabled:cursor-not-allowed disabled:opacity-50`}
         >
           {pushState.busy
-            ? "Working..."
+            ? uiLabels?.working || "Working..."
             : pushState.enabled
-              ? "Disable Push"
-              : "Enable Push"}
+              ? uiLabels?.disablePush || "Disable push"
+              : uiLabels?.enablePush || "Enable push"}
         </button>
         <button
           type="button"
@@ -46,7 +47,7 @@ function PushNotificationPanel({
           disabled={pushState.busy}
           className="rounded-xl bg-slate-200 px-4 py-3 text-sm font-semibold text-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
         >
-          Refresh Status
+          {uiLabels?.refreshStatus || "Refresh status"}
         </button>
         <button
           type="button"
@@ -54,7 +55,7 @@ function PushNotificationPanel({
           disabled={!pushState.enabled || pushState.busy}
           className="rounded-xl bg-emerald-600 px-4 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
         >
-          Send Test Push
+          {uiLabels?.sendTestPush || "Send test push"}
         </button>
       </div>
     </div>

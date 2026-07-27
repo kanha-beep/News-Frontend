@@ -107,7 +107,6 @@ function ArticleCard({
       <div className="mt-auto shrink-0 pt-3">
         <ArticleActionBar
           article={article}
-          uiLabels={uiLabels}
           handleReadArticle={handleReadArticle}
           handleCreateBlog={handleCreateBlog}
           handleReadBlog={handleReadBlog}
@@ -115,7 +114,6 @@ function ArticleCard({
         />
         <ArticleReactionBar
           article={article}
-          uiLabels={uiLabels}
           handleToggleLike={handleToggleLike}
           handleToggleDislike={handleToggleDislike}
           pendingLikeLinks={pendingLikeLinks}

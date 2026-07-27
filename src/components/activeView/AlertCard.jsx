@@ -5,6 +5,7 @@ function AlertCard({
   handleReadArticle,
   handleToggleAlert,
   handleDeleteAlert,
+  uiLabels,
 }) {
   return (
     <article className="rounded-2xl bg-white p-5 shadow-sm">
@@ -24,16 +25,21 @@ function AlertCard({
               : "bg-slate-200 text-slate-600"
           }`}
         >
-          {alert.enabled ? "Active" : "Paused"}
+          {alert.enabled ? uiLabels?.active || "Active" : uiLabels?.paused || "Paused"}
         </span>
       </div>
 
       <div className="mt-4 space-y-2 text-sm text-slate-600">
         <p>
-          {alert.matchCount || 0} recent match
-          {(alert.matchCount || 0) === 1 ? "" : "es"}
+          {alert.matchCount || 0}{" "}
+          {(alert.matchCount || 0) === 1
+            ? uiLabels?.recentMatch || "recent match"
+            : uiLabels?.recentMatches || "recent matches"}
         </p>
-        <p>Latest: {alert.latestMatch?.title || "No matching story yet"}</p>
+        <p>
+          {uiLabels?.latest || "Latest"}:{" "}
+          {alert.latestMatch?.title || uiLabels?.noMatchingStoryYet || "No matching story yet"}
+        </p>
       </div>
 
       {alert.matches?.length ? (
@@ -57,14 +63,14 @@ function AlertCard({
           onClick={() => handleToggleAlert(alert._id, !alert.enabled)}
           className="rounded-xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white"
         >
-          {alert.enabled ? "Pause" : "Enable"}
+          {alert.enabled ? uiLabels?.pause || "Pause" : uiLabels?.enable || "Enable"}
         </button>
         <button
           type="button"
           onClick={() => handleDeleteAlert(alert._id)}
           className="rounded-xl bg-slate-200 px-4 py-3 text-sm font-semibold text-slate-700"
         >
-          Delete
+          {uiLabels?.delete || "Delete"}
         </button>
       </div>
     </article>

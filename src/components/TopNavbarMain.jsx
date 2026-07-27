@@ -12,6 +12,7 @@ function TopNavbarMain({
   textScale,
   decreaseTextScale,
   increaseTextScale,
+  uiLabels,
 }) {
   return (
     <nav className="fixed inset-x-0 top-0 z-30 overflow-x-auto bg-white p-4">
@@ -29,18 +30,18 @@ function TopNavbarMain({
             type="button"
             onClick={toggleThemeMode}
             className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-200 text-sm font-semibold text-slate-700"
-            aria-label={isDarkMode ? "Light mode" : "Dark mode"}
-            title={isDarkMode ? "Light mode" : "Dark mode"}
+            aria-label={isDarkMode ? uiLabels?.lightMode || "Light mode" : uiLabels?.darkMode || "Dark mode"}
+            title={isDarkMode ? uiLabels?.lightMode || "Light mode" : uiLabels?.darkMode || "Dark mode"}
           >
             {isDarkMode ? <FaSun /> : <FaMoon />}
           </button>
-          <label className="rounded-full bg-slate-200 px-1 text-sm font-semibold text-slate-700">
+          {/* <label className="rounded-full bg-slate-200 px-1 text-sm font-semibold text-slate-700">
             {/* <span className="sr-only">Choose language</span> */}
             <select
               value={preferredLanguage}
               onChange={(event) => handleLanguageChange(event.target.value)}
               className="h-10 w-[5rem] rounded-full bg-transparent outline-none"
-              aria-label="Choose language"
+              aria-label={uiLabels?.chooseLanguage || "Choose language"}
               title={`Language: ${getLanguageLabel(preferredLanguage)}`}
             >
               {LANGUAGE_OPTIONS.map((language) => (
@@ -55,15 +56,15 @@ function TopNavbarMain({
                 </option>
               ))}
             </select>
-          </label>
+          </label> */}
         </div>
         {pendingLatestNews ? (
           <button
             type="button"
             onClick={handleApplyLatestNews}
             className="rounded-full bg-emerald-600 px-3 py-2 text-sm font-semibold text-white hover:bg-emerald-700"
-            title="Show latest news"
-            aria-label="Show latest news"
+            title={uiLabels?.showLatestNews || "Show latest news"}
+            aria-label={uiLabels?.showLatestNews || "Show latest news"}
           >
             <FaArrowUp />
           </button>
@@ -76,8 +77,8 @@ function TopNavbarMain({
                 type="button"
                 onClick={decreaseTextScale}
                 className="flex h-full w-5 items-center justify-center rounded-full bg-white/10 p-0 text-white"
-                aria-label="Decrease text size"
-                title="Decrease text size"
+                aria-label={uiLabels?.decreaseTextSize || "Decrease text size"}
+                title={uiLabels?.decreaseTextSize || "Decrease text size"}
               >
                 <FaMinus className="text-xs" />
               </button>
@@ -88,8 +89,8 @@ function TopNavbarMain({
                 type="button"
                 onClick={increaseTextScale}
                 className="flex h-full w-5 items-center justify-center rounded-full bg-white/10 p-0 text-white"
-                aria-label="Increase text size"
-                title="Increase text size"
+                aria-label={uiLabels?.increaseTextSize || "Increase text size"}
+                title={uiLabels?.increaseTextSize || "Increase text size"}
               >
                 <FaPlus className="text-xs" />
               </button>

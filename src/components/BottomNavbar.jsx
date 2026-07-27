@@ -13,6 +13,7 @@ export default function BottomNavbar({
   handleViewChange,
   openSearchModal,
   openTagBrowser,
+  uiLabels,
 }) {
   const { activeView } = useAppContext();
 
@@ -24,30 +25,30 @@ export default function BottomNavbar({
             isActive={activeView === "all"}
             onClick={() => handleViewChange("all")}
             icon={<FaNewspaper className="text-base" />}
-            label="Feed"
+            label={uiLabels?.feed || "Feed"}
           />
           <BottomNavItem
             isActive={activeView === "favorites"}
             onClick={() => handleViewChange("favorites")}
             icon={<FaBookmark className="text-base" />}
-            label="Saved"
+            label={uiLabels?.saved || "Saved"}
           />
            <BottomNavItem
             onClick={openSearchModal}
             icon={<FaSearch className="text-base" />}
-            label="Search"
+            label={uiLabels?.search || "Search"}
           />
           <BottomNavItem
             isActive={activeView === "alerts"}
             onClick={() => handleViewChange("alerts")}
             icon={<FaRegBell className="text-base" />}
-            label="Alerts"
+            label={uiLabels?.alerts || "Alerts"}
           />
          
           <BottomNavItem
             onClick={openTagBrowser}
             icon={<FaFilter className="text-base" />}
-            label="Tags"
+            label={uiLabels?.tags || "Tags"}
           />
         </div>
       </nav>

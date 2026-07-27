@@ -86,6 +86,7 @@ function App() {
   const [loadingTaglineIndex, setLoadingTaglineIndex] = useState(0);
   const [loadingDots, setLoadingDots] = useState(".");
   const [refreshing, setRefreshing] = useState(false);
+  const [isPseudoLoading, setIsPseudoLoading] = useState(false);
   const [pendingLatestNews, setPendingLatestNews] = useState(null);
   const [pendingLatestTags, setPendingLatestTags] = useState([]);
   const [translationStatus, setTranslationStatus] = useState(null);
@@ -131,6 +132,7 @@ function App() {
   const [isPullRefreshing, setIsPullRefreshing] = useState(false);
   const loadingProgressRef = useRef(0);
   const loadingAnimationRef = useRef(null);
+  const pseudoLoadingIntervalRef = useRef(null);
   const hasBootstrappedRef = useRef(false);
   const visitTrackedRef = useRef(false);
   const serviceWorkerRegistrationRef = useRef(null);
@@ -230,6 +232,44 @@ function App() {
         }
       }, intervalMs);
     });
+
+  const clearPseudoLoading = () => {
+    if (pseudoLoadingIntervalRef.current) {
+      clearInterval(pseudoLoadingIntervalRef.current);
+      pseudoLoadingIntervalRef.current = null;
+    }
+  };
+
+  const startPseudoLoading = ({
+    initialProgress = 10,
+    message = "Preparing your translated feed...",
+  } = {}) => {
+    clearPseudoLoading();
+    setIsPseudoLoading(true);
+    setLoadingTaglineIndex(0);
+    setLoadingDots(".");
+    updateLoadingProgress(initialProgress);
+    setLoadingMessage(message);
+
+    pseudoLoadingIntervalRef.current = window.setInterval(() => {
+      const current = loadingProgressRef.current;
+
+      if (current >= 92) {
+        return;
+      }
+
+      const remaining = 92 - current;
+      const step = Math.max(1, Math.min(6, Math.ceil(remaining * 0.14)));
+      updateLoadingProgress(current + step);
+    }, 700);
+  };
+
+  const finishPseudoLoading = async (message = "Finishing up...") => {
+    clearPseudoLoading();
+    setLoadingMessage(message);
+    await animateLoadingProgress(100, 350);
+    setIsPseudoLoading(false);
+  };
 
   const loadTags = async (shouldApply = true) => {
     const res = await axios.get(`${API_BASE_URL}/api/tags`);
@@ -750,7 +790,7 @@ function App() {
   }, [preferredLanguage]);
 
   useEffect(() => {
-    if (!loading) {
+    if (!(loading || isPseudoLoading)) {
       setLoadingTaglineIndex(0);
       setLoadingDots(".");
       return undefined;
@@ -772,7 +812,7 @@ function App() {
       window.clearInterval(taglineInterval);
       window.clearInterval(dotsInterval);
     };
-  }, [loading]);
+  }, [isPseudoLoading, loading]);
 
   useEffect(() => {
     return () => {
@@ -1816,6 +1856,10 @@ function App() {
 
     const previousLanguage = preferredLanguage;
 
+    startPseudoLoading({
+      initialProgress: 12,
+      message: `Switching to ${getLanguageLabel(nextLanguage)}...`,
+    });
     setPreferredLanguage(nextLanguage);
     setUiLabels(DEFAULT_UI_LABELS);
     setRefreshing(true);
@@ -1824,6 +1868,7 @@ function App() {
 
     try {
       if (token) {
+        setLoadingMessage("Saving your language preference...");
         const res = await axios.put(
           `${API_BASE_URL}/api/auth/preferences/language`,
           { language: nextLanguage },
@@ -1837,13 +1882,17 @@ function App() {
         setCurrentUser(res.data?.user || currentUser);
       }
 
+      setLoadingMessage("Refreshing translated headlines...");
       await syncNews();
 
       if (activeView === "alerts") {
+        setLoadingMessage("Loading translated alerts...");
         await Promise.all([loadAlerts(), loadPushStatus()]);
       } else if (sharedArticleLink) {
+        setLoadingMessage("Loading translated article...");
         await loadSharedArticle(sharedArticleLink, token, true);
       } else {
+        setLoadingMessage("Translating and loading your feed...");
         const payload = await loadNews(
           activeView,
           tagQuery,
@@ -1867,7 +1916,10 @@ function App() {
         message: `${getLanguageLabel(nextLanguage)} feed enabled`,
         type: "success",
       });
+      await finishPseudoLoading();
     } catch (err) {
+      clearPseudoLoading();
+      setIsPseudoLoading(false);
       setPreferredLanguage(previousLanguage);
       setError(err?.response?.data?.message || "Unable to switch language.");
     } finally {
@@ -2012,6 +2064,7 @@ function App() {
               increaseTextScale={increaseTextScale}
               decreaseTextScale={decreaseTextScale}
               openAuthScreen={openAuthScreen}
+              uiLabels={uiLabels}
             />
 
             <AuthScreen
@@ -2081,11 +2134,13 @@ function App() {
             increaseTextScale={increaseTextScale}
             decreaseTextScale={decreaseTextScale}
             openAuthScreen={openAuthScreen}
+            uiLabels={uiLabels}
           />
           <BottomNavbar
             handleViewChange={handleViewChange}
             openSearchModal={openSearchModal}
             openTagBrowser={openTagBrowser}
+            uiLabels={uiLabels}
           />
 
           {activeView !== "alerts" && isMobileTagMenuOpen ? (
@@ -2097,6 +2152,7 @@ function App() {
               selectedTags={selectedTags}
               filteredBrowserTags={filteredBrowserTags}
               selectedTagSet={selectedTagSet}
+              uiLabels={uiLabels}
             />
           ) : null}
 
@@ -2109,6 +2165,7 @@ function App() {
             setDateFilter={setDateFilter}
             clearSharedArticleFocus={clearSharedArticleFocus}
             clearAllFilters={clearAllFilters}
+            uiLabels={uiLabels}
           />
           <div
             ref={pullAreaRef}
@@ -2148,7 +2205,7 @@ function App() {
               </div>
             )}
 
-            {loading ? (
+            {loading || isPseudoLoading ? (
               <LoadingScreen
                 loadingProgress={loadingProgress}
                 loadingMessage={loadingMessage}
@@ -2185,6 +2242,7 @@ function App() {
                     handleReadArticle={handleReadArticle}
                     handleToggleAlert={handleToggleAlert}
                     handleDeleteAlert={handleDeleteAlert}
+                    uiLabels={uiLabels}
                   />
                 ) : (
               <NewsFeedView

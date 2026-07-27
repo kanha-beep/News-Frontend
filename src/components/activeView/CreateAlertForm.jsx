@@ -5,14 +5,15 @@ function CreateAlertForm({
   setAlertForm,
   handleCreateAlert,
   alertSubmitting,
+  uiLabels,
 }) {
   return (
     <div className="rounded-2xl bg-white p-5 shadow-sm">
       <p className="text-xs font-semibold uppercase tracking-[0.24em] text-blue-600">
-        Saved Alerts
+        {uiLabels?.savedAlerts || "Saved alerts"}
       </p>
       <h2 className="mt-2 text-xl font-bold text-slate-900">
-        Create a topic alert
+        {uiLabels?.createTopicAlert || "Create a topic alert"}
       </h2>
       <form
         onSubmit={handleCreateAlert}
@@ -26,7 +27,7 @@ function CreateAlertForm({
               topic: e.target.value,
             }))
           }
-          placeholder="Example: kerala rain"
+          placeholder={uiLabels?.alertExamplePlaceholder || "Example: kerala rain"}
           className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none transition focus:border-blue-500"
         />
         <select
@@ -39,15 +40,17 @@ function CreateAlertForm({
           }
           className="rounded-xl border border-slate-300 px-4 py-3 outline-none transition focus:border-blue-500"
         >
-          <option value="topic">Topic alert</option>
-          <option value="breaking">Breaking alert</option>
+          <option value="topic">{uiLabels?.topicAlert || "Topic alert"}</option>
+          <option value="breaking">{uiLabels?.breakingAlert || "Breaking alert"}</option>
         </select>
         <button
           type="submit"
           disabled={alertSubmitting}
           className="rounded-xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
         >
-          {alertSubmitting ? "Saving..." : "Create Alert"}
+          {alertSubmitting
+            ? uiLabels?.saving || "Saving..."
+            : uiLabels?.createAlert || "Create alert"}
         </button>
       </form>
     </div>

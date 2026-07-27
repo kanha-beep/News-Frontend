@@ -17,6 +17,7 @@ export default function AlertsView({
   handleReadArticle,
   handleToggleAlert,
   handleDeleteAlert,
+  uiLabels,
 }) {
   return (
     <div className="space-y-6">
@@ -27,6 +28,7 @@ export default function AlertsView({
         handleSendTestPush={handleSendTestPush}
         loadPushStatus={loadPushStatus}
         token={token}
+        uiLabels={uiLabels}
       />
 
       <CreateAlertForm
@@ -34,14 +36,17 @@ export default function AlertsView({
         setAlertForm={setAlertForm}
         handleCreateAlert={handleCreateAlert}
         alertSubmitting={alertSubmitting}
+        uiLabels={uiLabels}
       />
 
       {alerts.length === 0 ? (
         <div className="rounded-2xl bg-white p-10 text-center shadow-sm">
-          <p className="text-lg font-semibold text-slate-700">No alerts yet.</p>
+          <p className="text-lg font-semibold text-slate-700">
+            {uiLabels?.noAlertsYet || "No alerts yet."}
+          </p>
           <p className="mt-2 text-sm text-slate-500">
-            Create a topic alert and this browser can notify you when matching
-            stories arrive.
+            {uiLabels?.alertsEmptyState ||
+              "Create a topic alert and this browser can notify you when matching stories arrive."}
           </p>
         </div>
       ) : (
@@ -53,6 +58,7 @@ export default function AlertsView({
               handleReadArticle={handleReadArticle}
               handleToggleAlert={handleToggleAlert}
               handleDeleteAlert={handleDeleteAlert}
+              uiLabels={uiLabels}
             />
           ))}
         </div>
