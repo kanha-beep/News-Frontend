@@ -30,33 +30,40 @@ function TopNavbarMain({
             type="button"
             onClick={toggleThemeMode}
             className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-200 text-sm font-semibold text-slate-700"
-            aria-label={isDarkMode ? uiLabels?.lightMode || "Light mode" : uiLabels?.darkMode || "Dark mode"}
-            title={isDarkMode ? uiLabels?.lightMode || "Light mode" : uiLabels?.darkMode || "Dark mode"}
+            aria-label={
+              isDarkMode
+                ? uiLabels?.lightMode || "Light mode"
+                : uiLabels?.darkMode || "Dark mode"
+            }
+            title={
+              isDarkMode
+                ? uiLabels?.lightMode || "Light mode"
+                : uiLabels?.darkMode || "Dark mode"
+            }
           >
             {isDarkMode ? <FaSun /> : <FaMoon />}
           </button>
           {/* <label className="rounded-full bg-slate-200 px-1 text-sm font-semibold text-slate-700">
             {/* <span className="sr-only">Choose language</span> */}
-            <select
-              value={preferredLanguage}
-              onChange={(event) => handleLanguageChange(event.target.value)}
-              className="h-10 w-[5rem] rounded-full bg-transparent outline-none"
-              aria-label={uiLabels?.chooseLanguage || "Choose language"}
-              title={`Language: ${getLanguageLabel(preferredLanguage)}`}
-            >
-              {LANGUAGE_OPTIONS.map((language) => (
-                <option
-                  key={language.code}
-                  value={language.code}
-                  disabled={!language.googleSupported}
-                >
-                  {language.googleSupported
-                    ? language.label
-                    : `${language.label} (Unavailable)`}
-                </option>
-              ))}
-            </select>
-          </label> */}
+          <select
+            value={preferredLanguage}
+            onChange={(event) => handleLanguageChange(event.target.value)}
+            className="h-10 w-[5rem] rounded-full bg-transparent outline-none"
+            aria-label={uiLabels?.chooseLanguage || "Choose language"}
+            title={`Language: ${getLanguageLabel(preferredLanguage)}`}
+          >
+            {LANGUAGE_OPTIONS.map((language) => (
+              <option
+                key={language.code}
+                value={language.code}
+                disabled={!language.googleSupported}
+              >
+                {language.googleSupported
+                  ? language.label
+                  : `${language.label} (Unavailable)`}
+              </option>
+            ))}
+          </select>
         </div>
         {pendingLatestNews ? (
           <button

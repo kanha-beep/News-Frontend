@@ -17,7 +17,7 @@ function ArticleReactionBar({
           Boolean(pendingLikeLinks[article.link]) ||
           Boolean(pendingDislikeLinks[article.link])
         }
-        className={`like-button flex w-[5rem] items-center justify-center gap-2 rounded-2xl border border-white/60 bg-white/70 px-3 py-3 text-xl font-semibold backdrop-blur-sm hover:bg-white ${
+        className={`like-button flex w-[5rem] items-center justify-center gap-2 rounded-2xl border-2 border-transparent bg-white/70 px-3 py-3 text-xl font-semibold backdrop-blur-sm transition hover:border-black hover:bg-white focus-visible:border-black ${
           article.isLiked
             ? "w-[5.25rem] text-red-600"
             : "text-slate-700 hover:text-slate-900"
@@ -36,7 +36,7 @@ function ArticleReactionBar({
           Boolean(pendingDislikeLinks[article.link]) ||
           Boolean(pendingLikeLinks[article.link])
         }
-        className={`dislike-button ml-[-0.2rem] flex items-center justify-center gap-1 rounded-2xl border border-white/60 bg-white/70 p-2 text-lg font-semibold backdrop-blur-sm hover:bg-white ${
+        className={`dislike-button ml-[-0.2rem] flex items-center justify-center gap-1 rounded-2xl border-2 border-transparent bg-white/70 p-2 text-lg font-semibold backdrop-blur-sm transition hover:border-black hover:bg-white focus-visible:border-black ${
           article.isDisliked
             ? "w-[7rem] text-blue-600"
             : "text-slate-700 hover:text-slate-900"
@@ -51,7 +51,7 @@ function ArticleReactionBar({
       <button
         type="button"
         onClick={() => handleCommentClick(article)}
-        className="flex items-center justify-center gap-1 rounded-2xl border border-white/60 bg-white/70 px-3 py-3 text-xl font-semibold text-slate-900 backdrop-blur-sm transition hover:bg-white hover:text-slate-700"
+        className="flex items-center justify-center gap-1 rounded-2xl border-2 border-transparent bg-white/70 px-3 py-3 text-xl font-semibold text-slate-900 backdrop-blur-sm transition hover:border-black hover:bg-white hover:text-slate-700 focus-visible:border-black"
         aria-label="Comment"
         title="Comment"
       >

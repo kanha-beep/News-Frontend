@@ -1,6 +1,9 @@
 import axios from "axios";
 
-export const API_BASE_URL = import.meta.env.VITE_API_URI;
+const normalizeBaseUrl = (value) => String(value || "").trim().replace(/\/+$/, "");
+
+export const API_BASE_URL =
+  normalizeBaseUrl(import.meta.env.VITE_API_URI) || "http://localhost:3000";
 export const TRANSLATION_SERVICE_URL =
   import.meta.env.VITE_TRANSLATION_SERVICE_URL || "";
 export const DEFAULT_UI_LABELS = {
