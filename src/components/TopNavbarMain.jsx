@@ -45,7 +45,7 @@ function TopNavbarMain({
           </button>
           {/* <label className="rounded-full bg-slate-200 px-1 text-sm font-semibold text-slate-700">
             {/* <span className="sr-only">Choose language</span> */}
-          <select
+          {/* <select
             value={preferredLanguage}
             onChange={(event) => handleLanguageChange(event.target.value)}
             className="h-10 w-[5rem] rounded-full bg-transparent outline-none"
@@ -63,7 +63,7 @@ function TopNavbarMain({
                   : `${language.label} (Unavailable)`}
               </option>
             ))}
-          </select>
+          </select> */}
         </div>
         {pendingLatestNews ? (
           <button
