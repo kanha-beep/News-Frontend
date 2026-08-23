@@ -96,7 +96,7 @@ function TopNavbarMain({
               <button
                 type="button"
                 onClick={increaseTextScale}
-                className="flex h-full w-5 items-center justify-center rounded-full bg-white/10 p-0 text-white"
+                className="flex h-full w-5 items-center justify-center rounded-full bg-white/10 p-0 text-white dark:text-white"
                 aria-label={uiLabels?.increaseTextSize || "Increase text size"}
                 title={uiLabels?.increaseTextSize || "Increase text size"}
               >
