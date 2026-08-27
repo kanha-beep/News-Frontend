@@ -185,6 +185,17 @@ function App() {
     setTranslationStatus(payload?.translation || null);
   };
 
+  const getUnseenNewsItems = (incomingItems = [], existingItems = []) => {
+    const seenLinks = new Set(
+      (existingItems || []).map((item) => item?.link).filter(Boolean),
+    );
+
+    return (incomingItems || []).filter((item) => {
+      const link = item?.link;
+      return link && !seenLinks.has(link);
+    });
+  };
+
   const getFeedAnchorOffset = () => {
     const navbar = document.querySelector("nav");
     return (navbar?.getBoundingClientRect().bottom || 0) + 12;
@@ -817,13 +828,21 @@ function App() {
           ? JSON.stringify({ item: latestPayload?.link || "" })
           : getNewsPayloadSignature(latestPayload);
 
+        const latestItems = sharedArticleLink
+          ? []
+          : getUnseenNewsItems(latestPayload?.items || [], cachedPayload?.items || []);
+
         if (
           !sharedArticleLink &&
           hasCachedNews &&
           hasDefaultScreenOpen &&
-          latestSignature !== cachedSignature
+          latestSignature !== cachedSignature &&
+          latestItems.length > 0
         ) {
-          setPendingLatestNews(latestPayload);
+          setPendingLatestNews({
+            payload: latestPayload,
+            items: latestItems,
+          });
           setPendingLatestTags(nextTags);
         } else {
           setAvailableTags(nextTags);
@@ -1880,10 +1899,30 @@ function App() {
   const handleApplyLatestNews = () => {
     if (!pendingLatestNews) return;
 
+    const latestPayload = pendingLatestNews?.payload;
+    const latestItems = pendingLatestNews?.items || [];
+
+    if (!latestPayload || latestItems.length === 0) {
+      setPendingLatestNews(null);
+      setPendingLatestTags([]);
+      return;
+    }
+
     captureVisibleArticleAnchor();
-    applyNewsPayload(pendingLatestNews);
+
+    setNews((prev) => {
+      const nextItems = getUnseenNewsItems(latestItems, prev);
+      if (nextItems.length === 0) {
+        return prev;
+      }
+
+      return [...nextItems, ...prev];
+    });
+    setTotalItems(latestPayload?.total || 0);
+    setTotalPages(latestPayload?.totalPages || 1);
+    setTranslationStatus(latestPayload?.translation || null);
     setAvailableTags(pendingLatestTags);
-    cacheDefaultFeed(pendingLatestNews, pendingLatestTags);
+    cacheDefaultFeed(latestPayload, pendingLatestTags);
     setPendingLatestNews(null);
     setPendingLatestTags([]);
   };
