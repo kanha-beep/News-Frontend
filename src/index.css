@@ -105,6 +105,22 @@ body.dark-mode #root {
   scroll-margin-top: 8.5rem;
 }
 
+.feed-refresh-banner {
+  position: fixed;
+  left: 50%;
+  top: 5.25rem;
+  z-index: 28;
+  transform: translateX(-50%);
+  border-radius: 9999px;
+  background: rgba(37, 99, 235, 0.94);
+  box-shadow: 0 12px 28px rgba(37, 99, 235, 0.22);
+  color: #ffffff;
+  font-size: 0.82rem;
+  font-weight: 600;
+  padding: 0.55rem 0.9rem;
+  pointer-events: none;
+}
+
 @keyframes pull-refresh-spin {
   from {
     transform: rotate(0deg);
@@ -309,6 +325,11 @@ body.dark-mode .pull-refresh-spinner {
 
 body.dark-mode .pull-refresh-indicator.is-ready .pull-refresh-spinner {
   border-top-color: #e2e8f0;
+}
+
+body.dark-mode .feed-refresh-banner {
+  background: rgba(30, 64, 175, 0.95);
+  box-shadow: 0 16px 36px rgba(2, 6, 23, 0.45);
 }
 
 @media (prefers-reduced-motion: reduce) {

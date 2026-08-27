@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import axios from "axios";
 import AppToast from "./components/AppToast.jsx";
 import AuthScreen from "./components/AuthScreen.jsx";
@@ -140,6 +140,7 @@ function App() {
   const pullAreaRef = useRef(null);
   const pullStartYRef = useRef(0);
   const isPullingRef = useRef(false);
+  const pendingScrollAnchorRef = useRef(null);
 
   const appContextValue = {
     authScreen,
@@ -182,6 +183,75 @@ function App() {
     setTotalItems(payload?.total || 0);
     setTotalPages(payload?.totalPages || 1);
     setTranslationStatus(payload?.translation || null);
+  };
+
+  const getFeedAnchorOffset = () => {
+    const navbar = document.querySelector("nav");
+    return (navbar?.getBoundingClientRect().bottom || 0) + 12;
+  };
+
+  const captureVisibleArticleAnchor = () => {
+    if (typeof window === "undefined") {
+      return false;
+    }
+
+    const cards = document.querySelectorAll("[data-article-link]");
+    if (!cards.length) {
+      return false;
+    }
+
+    const anchorOffset = getFeedAnchorOffset();
+    const anchorCard = Array.from(cards).find((card) => {
+      const rect = card.getBoundingClientRect();
+      return rect.bottom > anchorOffset;
+    });
+
+    if (!anchorCard) {
+      return false;
+    }
+
+    pendingScrollAnchorRef.current = {
+      link: anchorCard.getAttribute("data-article-link"),
+      top: anchorCard.getBoundingClientRect().top,
+    };
+    return true;
+  };
+
+  const restoreVisibleArticleAnchor = () => {
+    if (typeof window === "undefined") {
+      pendingScrollAnchorRef.current = null;
+      return;
+    }
+
+    const anchor = pendingScrollAnchorRef.current;
+    if (!anchor?.link) {
+      return;
+    }
+
+    window.requestAnimationFrame(() => {
+      const selector = `[data-article-link="${CSS.escape(anchor.link)}"]`;
+      const nextCard = document.querySelector(selector);
+
+      if (!nextCard) {
+        pendingScrollAnchorRef.current = null;
+        return;
+      }
+
+      const nextTop = nextCard.getBoundingClientRect().top;
+      const offsetDelta = nextTop - anchor.top;
+
+      if (Math.abs(offsetDelta) > 1) {
+        const html = document.documentElement;
+        const previousBehavior = html.style.scrollBehavior;
+        html.style.scrollBehavior = "auto";
+        window.scrollTo(0, window.scrollY + offsetDelta);
+        window.requestAnimationFrame(() => {
+          html.style.scrollBehavior = previousBehavior;
+        });
+      }
+
+      pendingScrollAnchorRef.current = null;
+    });
   };
 
   const cacheDefaultFeed = (payload, tags = availableTags) => {
@@ -867,6 +937,7 @@ function App() {
       if (currentPage > 1) {
         setIsLoadingMore(true);
       } else {
+        captureVisibleArticleAnchor();
         setRefreshing(true);
       }
       setError("");
@@ -929,6 +1000,10 @@ function App() {
     authScreen,
     sharedArticleLink,
   ]);
+
+  useLayoutEffect(() => {
+    restoreVisibleArticleAnchor();
+  }, [news]);
 
   useEffect(() => {
     setCurrentPage(1);
@@ -1805,6 +1880,7 @@ function App() {
   const handleApplyLatestNews = () => {
     if (!pendingLatestNews) return;
 
+    captureVisibleArticleAnchor();
     applyNewsPayload(pendingLatestNews);
     setAvailableTags(pendingLatestTags);
     cacheDefaultFeed(pendingLatestNews, pendingLatestTags);
@@ -2121,6 +2197,9 @@ function App() {
                   : "Pull to refresh"}
             </span>
           </div>
+          {refreshing && !loading && !isPullRefreshing ? (
+            <div className="feed-refresh-banner">Updating articles...</div>
+          ) : null}
           <div
             className="px-4 pt-[5rem] sm:px-6 sm:pb-28 sm:pt-36 lg:px-8 lg:pt-[5rem]"
           >
@@ -2218,12 +2297,6 @@ function App() {
                   <div className="mb-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
                     {error}
                   </div>
-                ) : null}
-
-                {refreshing ? (
-                  <p className="mb-4 text-sm font-medium text-blue-600">
-                    Updating articles...
-                  </p>
                 ) : null}
 
                 {activeView === "alerts" ? (

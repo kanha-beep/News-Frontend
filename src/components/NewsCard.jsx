@@ -30,7 +30,7 @@ export default function NewsCard({
     <div className="mx-auto grid max-w-3xl gap-2">
       {news.map((article) => (
         <React.Fragment key={article._id || article.link}>
-          <div>
+          <div className="js-feed-item" data-article-link={article.link}>
             <ArticleCard
               article={article}
               preferredLanguage={preferredLanguage}
