@@ -100,10 +100,6 @@ body.dark-mode #root {
   white-space: nowrap;
 }
 
-.feed-card,
-.feed-loader {
-  scroll-margin-top: 8.5rem;
-}
 
 .feed-refresh-banner {
   position: fixed;
