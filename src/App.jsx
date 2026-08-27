@@ -2306,9 +2306,9 @@ function App() {
               selectedTagSet={selectedTagSet}
             />
 
-          <div className="min-w-0 flex-1">
+          <div className="flex-1">
             {activeView === "alerts" ? null : (
-              <div className="mt-5">
+              <div className="">
                 <div className="max-w-3xl">
                  
                   <SelectedTagsBar
