@@ -2236,9 +2236,9 @@ function App() {
                   : "Pull to refresh"}
             </span>
           </div>
-          {refreshing && !loading && !isPullRefreshing ? (
+          {/* {refreshing && !loading && !isPullRefreshing ? (
             <div className="feed-refresh-banner">Updating articles...</div>
-          ) : null}
+          ) : null} */}
           <div
             className="px-4 pt-[5rem] sm:px-6 sm:pb-28 sm:pt-36 lg:px-8 lg:pt-[5rem]"
           >
