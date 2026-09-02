@@ -22,6 +22,39 @@ function ArticleCard({
   handleShareArticle,
 }) {
   const visibleTags = sanitizeVisibleTags(article.tags);
+  const isWaitingForTranslation =
+    preferredLanguage !== "en" && article.translationSkipped;
+
+  if (isWaitingForTranslation) {
+    return (
+      <article
+        className="flex h-[30rem] flex-col overflow-hidden bg-white px-6 p-3 sm:h-[30rem] sm:px-5 sm:pt-5 sm:pb-2"
+        aria-busy="true"
+        aria-label="Translating article"
+      >
+        <div className="flex h-full animate-pulse flex-col gap-5 blur-[1px]">
+          <div className="flex items-center justify-between">
+            <div className="h-7 w-28 rounded-full bg-slate-200" />
+            <div className="h-9 w-9 rounded-full bg-slate-200" />
+          </div>
+          <div className="h-4 w-36 rounded bg-slate-200" />
+          <div className="space-y-3">
+            <div className="h-10 w-full rounded bg-slate-200" />
+            <div className="h-10 w-4/5 rounded bg-slate-200" />
+          </div>
+          <div className="space-y-3">
+            <div className="h-5 w-full rounded bg-slate-100" />
+            <div className="h-5 w-11/12 rounded bg-slate-100" />
+          </div>
+          <div className="mt-auto flex gap-3 pt-3">
+            <div className="h-10 flex-1 rounded bg-slate-100" />
+            <div className="h-10 flex-1 rounded bg-slate-100" />
+            <div className="h-10 flex-1 rounded bg-slate-100" />
+          </div>
+        </div>
+      </article>
+    );
+  }
 
   return (
     <article
@@ -61,7 +94,7 @@ function ArticleCard({
           {article.pubDate || "No publish date"}
         </p>
 
-        {/* {preferredLanguage !== "en" ? (
+        {preferredLanguage !== "en" ? (
           <div className="mb-3 flex">
             <span
               className={`rounded-full px-3 py-1 text-[11px] font-semibold ${
@@ -79,7 +112,7 @@ function ArticleCard({
                   : "Pending"}
             </span>
           </div>
-        ) : null} */}
+        ) : null}
 
         <h2
           className="mb-3 font-bold text-slate-900"

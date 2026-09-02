@@ -41,7 +41,7 @@ export default function NewsFeedView({
 
   return (
     <>
-      {/* {preferredLanguage !== "en" && translationStatus ? (
+      {preferredLanguage !== "en" && translationStatus ? (
         <div
           className={`mb-4 rounded-2xl px-4 py-3 text-sm font-medium ${
             translationStatus.fallbackToEnglish
@@ -53,7 +53,7 @@ export default function NewsFeedView({
             ? `${getLanguageLabel(preferredLanguage)} requested, but ${translationStatus.skippedCount} article(s) are still falling back to English.`
             : `${getLanguageLabel(preferredLanguage)} translation active for ${translationStatus.translatedCount} article(s).`}
         </div>
-      ) : null} */}
+      ) : null}
 
       <NewsCard
         news={news}

@@ -82,7 +82,10 @@ function TopNavbarMain({
 
         <div className="ml-auto flex shrink-0 flex-col items-end gap-3">
           <div className="flex flex-col items-end gap-1">
-            <div className=" h-10 flex items-center justify-center gap-1 rounded-2xl bg-slate-900 px-2 py-1 text-xs font-semibold text-white">
+            <div className="h-10 flex items-center justify-center gap-2 rounded-2xl bg-slate-900 px-3 py-1 text-xs font-semibold text-white">
+              <span className="text-[10px] uppercase tracking-[0.18em] text-white/70">
+                Text
+              </span>
               <button
                 type="button"
                 onClick={decreaseTextScale}
