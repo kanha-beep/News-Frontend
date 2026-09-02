@@ -7,8 +7,8 @@ function LoadingScreen({
   loadingTagline,
 }) {
   return (
-    <div className="flex min-h-[45vh] items-center justify-center">
-      <div className="w-full max-w-xl rounded-3xl bg-white p-8 text-left shadow-lg overflow-hidden">
+    <div className="flex min-h-[45vh] items-center justify-center overflow-hidden">
+      <div className="w-full max-w-xl rounded-3xl bg-white p-8 text-left shadow-lg">
         <p className="text-xs font-semibold uppercase tracking-[0.3em] text-blue-600">
           Fetching News
         </p>
