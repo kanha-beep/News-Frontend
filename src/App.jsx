@@ -49,6 +49,7 @@ const LOADING_TAGLINES = [
 
 const PULL_REFRESH_TRIGGER = 84;
 const PULL_REFRESH_MAX = 120;
+const PSEUDO_LOADING_MAX_PROGRESS = 97;
 
 function App() {
   const [news, setNews] = useState(() => getCachedNewsPayload().items || []);
@@ -322,7 +323,7 @@ function App() {
   };
 
   const startPseudoLoading = ({
-    initialProgress = 10,
+    initialProgress = 1,
     message = "Preparing your translated feed...",
   } = {}) => {
     clearPseudoLoading();
@@ -335,14 +336,14 @@ function App() {
     pseudoLoadingIntervalRef.current = window.setInterval(() => {
       const current = loadingProgressRef.current;
 
-      if (current >= 92) {
+      if (current >= PSEUDO_LOADING_MAX_PROGRESS) {
         return;
       }
 
-      const remaining = 92 - current;
-      const step = Math.max(1, Math.min(6, Math.ceil(remaining * 0.14)));
+      const remaining = PSEUDO_LOADING_MAX_PROGRESS - current;
+      const step = Math.max(0.35, remaining * 0.035);
       updateLoadingProgress(current + step);
-    }, 700);
+    }, 90);
   };
 
   const finishPseudoLoading = async (message = "Finishing up...") => {
@@ -776,7 +777,10 @@ function App() {
 
       try {
         if (!hasCachedNews) {
-          await animateLoadingProgress(18, 350);
+          startPseudoLoading({
+            initialProgress: 1,
+            message: "Fetching latest articles...",
+          });
         } else {
           if (cachedTags.length > 0) {
             setAvailableTags(cachedTags);
@@ -786,10 +790,6 @@ function App() {
 
         await syncNews();
         setLoadingMessage("Checking your account...");
-
-        if (!hasCachedNews) {
-          await animateLoadingProgress(44, 400);
-        }
 
         if (token) {
           try {
@@ -809,9 +809,6 @@ function App() {
         }
 
         setLoadingMessage("Loading tags and headlines...");
-        if (!hasCachedNews) {
-          await animateLoadingProgress(72, 400);
-        }
 
         const [nextTags, latestPayload] = await Promise.all([
           loadTags(false),
@@ -861,10 +858,11 @@ function App() {
         }
 
         if (!hasCachedNews) {
-          setLoadingMessage("Finishing up...");
-          await animateLoadingProgress(100, 300);
+          await finishPseudoLoading("Finishing up...");
         }
       } catch (err) {
+        clearPseudoLoading();
+        setIsPseudoLoading(false);
         setError(
           err?.response?.data?.message || "Unable to load news right now.",
         );
@@ -909,6 +907,7 @@ function App() {
         clearInterval(loadingAnimationRef.current);
       }
 
+      clearPseudoLoading();
     };
   }, []);
 
