@@ -18,8 +18,8 @@ function TopNavbarAuth({
       </div>
 
       <div className="text-center">
-        <h1 className="text-3xl font-bold">N E W Z</h1>
-        <div className="flex justify-center gap-3">
+        <h1 className="text-3xl font-bold">N E W S    P O L L</h1>
+        {/* <div className="flex justify-center gap-3">
           <p className="text-sm font-medium uppercase tracking-[0.25em] text-blue-600">
             Kanha Gupta
           </p>
@@ -31,7 +31,7 @@ function TopNavbarAuth({
           >
             Contact
           </a>
-        </div>
+        </div> */}
       </div>
 
       <div className="flex justify-end">
