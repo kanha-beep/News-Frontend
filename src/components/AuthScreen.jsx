@@ -102,7 +102,9 @@ function AuthScreen({
         </button>
       </form>
 
-      <div className="mt-4 flex items-center justify-between gap-3">
+      <div className="mt-4 flex items-center justify-between gap-3"  onClick={() =>
+            setAuthScreen((prev) => (prev === "register" ? "login" : "register"))
+          }>
         <p className="text-sm text-slate-500">
           {authScreen === "register"
             ? "Already have an account?"
