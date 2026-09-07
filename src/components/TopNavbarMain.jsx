@@ -20,11 +20,11 @@ function TopNavbarMain({
       <div className="flex min-w-max flex-nowrap items-start gap-4">
         <div className="shrink-0 flex items-center font-semibold shadow-sm py-2">
           <div className="honesty" onClick={() => navigate("/home")}>
-            NewsHonesty
+            NewsPoll
           </div>
           {/* <img
             src="/lightning-news-logo.png"
-            alt="NewsHonesty logo"
+            alt="NewsPoll logo"
             className="h-14 w-14 rounded-full object-cover"
           /> */}
         </div>

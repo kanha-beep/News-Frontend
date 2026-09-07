@@ -12,7 +12,7 @@ function TopNavbarAuth({
       <div className="flex justify-start">
         <img
           src="/lightning-news-logo.png"
-          alt="NewsHonesty logo"
+          alt="NewsPoll logo"
           className="h-14 w-14 rounded-full object-cover"
         />
       </div>

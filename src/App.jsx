@@ -1534,7 +1534,7 @@ function App() {
     const shareUrl = appUrl.toString();
     const sharePayload = {
       title: article.title || "News article",
-      text: article.title || "Open this news in NewsHonesty",
+      text: article.title || "Open this news in NewsPoll",
       url: shareUrl,
     };
 
