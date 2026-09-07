@@ -21,8 +21,8 @@ function AuthScreen({
       </h2> */}
       <p className="mt-2 text-sm text-slate-500">
         {authScreen === "register"
-          ? "Create an account to keep favorite articles in your dashboard."
-          : "Sign in to continue with your saved favorites."}
+          ? "Create an account to do your brain recharge."
+          : "Sign in to continue with your brain recharge."}
       </p>
 
       <form onSubmit={handleAuthSubmit} className="mt-6 space-y-4">
