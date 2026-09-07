@@ -14,11 +14,11 @@ function AuthScreen({
       <p className="text-sm font-medium uppercase tracking-[0.25em] text-blue-600">
         {authScreen === "register" ? "Create Account" : "Sign In"}
       </p>
-      <h2 className="mt-2 text-3xl font-bold text-slate-900">
+      {/* <h2 className="mt-2 text-3xl font-bold text-slate-900">
         {authScreen === "register"
           ? "Save your favorite news"
           : "Access your favorites"}
-      </h2>
+      </h2> */}
       <p className="mt-2 text-sm text-slate-500">
         {authScreen === "register"
           ? "Create an account to keep favorite articles in your dashboard."
