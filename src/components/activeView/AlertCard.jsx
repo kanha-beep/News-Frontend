@@ -58,13 +58,13 @@ function AlertCard({
       ) : null}
 
       <div className="mt-4 flex flex-wrap gap-3">
-        <button
+        {/* <button
           type="button"
           onClick={() => handleToggleAlert(alert._id, !alert.enabled)}
           className="rounded-xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white"
         >
           {alert.enabled ? uiLabels?.pause || "Pause" : uiLabels?.enable || "Enable"}
-        </button>
+        </button> */}
         <button
           type="button"
           onClick={() => handleDeleteAlert(alert._id)}

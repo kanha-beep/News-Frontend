@@ -21,7 +21,7 @@ export default function AlertsView({
 }) {
   return (
     <div className="space-y-6">
-      <PushNotificationPanel
+      {/* <PushNotificationPanel
         pushState={pushState}
         handleDisablePush={handleDisablePush}
         handleEnablePush={handleEnablePush}
@@ -29,7 +29,7 @@ export default function AlertsView({
         loadPushStatus={loadPushStatus}
         token={token}
         uiLabels={uiLabels}
-      />
+      /> */}
 
       <CreateAlertForm
         alertForm={alertForm}
