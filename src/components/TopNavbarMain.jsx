@@ -47,8 +47,8 @@ function TopNavbarMain({
             {isDarkMode ? <FaSun /> : <FaMoon />}
           </button>
           {/* <label className="rounded-full bg-slate-200 px-1 text-sm font-semibold text-slate-700"></label> */}
-            <span className="sr-only">Choose language</span> */}
-           <select
+            {/* <span className="sr-only">Choose language</span> */}
+            <select
             value={preferredLanguage}
             onChange={(event) => handleLanguageChange(event.target.value)}
             className="h-10 w-[5rem] rounded-full bg-transparent outline-none"
