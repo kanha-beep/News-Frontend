@@ -1,10 +1,11 @@
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import axios from "axios";
 import AppToast from "./components/AppToast.jsx";
 import AuthScreen from "./components/AuthScreen.jsx";
 import BottomNavbar from "./components/BottomNavbar.jsx";
 import CommentModal from "./components/CommentModal.jsx";
 import LoadingScreen from "./components/LoadingScreen.jsx";
+import InterestOnboarding from "./components/InterestOnboarding.jsx";
 import SearchModal from "./components/SearchModal.jsx";
 import SelectedTagsBar from "./components/SelectedTagsBar.jsx";
 import TagSidebar from "./components/TagSidebar.jsx";
@@ -98,7 +99,9 @@ function App() {
     message: "",
     type: "success",
   });
-  const [authScreen, setAuthScreen] = useState(null);
+  const [authScreen, setAuthScreen] = useState(() =>
+    localStorage.getItem(TOKEN_STORAGE_KEY) ? null : "onboarding",
+  );
   const [authSubmitting, setAuthSubmitting] = useState(false);
   const [authForm, setAuthForm] = useState({
     name: "",
@@ -1213,6 +1216,38 @@ function App() {
     }
   };
 
+  const handleGoogleCredential = useCallback(async ({ credential }) => {
+    setAuthSubmitting(true);
+    setError("");
+    try {
+      const res = await axios.post(`${API_BASE_URL}/api/auth/google`, { credential });
+      setToken(res.data?.token || "");
+      setCurrentUser(res.data?.user || null);
+      setToast({ show: true, message: "Signed in with Google", type: "success" });
+    } catch (err) {
+      setError(err?.response?.data?.message || "Google sign-in failed.");
+    } finally {
+      setAuthSubmitting(false);
+    }
+  }, []);
+
+  const handleSaveInterests = async (interests) => {
+    setAuthSubmitting(true);
+    setError("");
+    try {
+      if (token) {
+        const res = await axios.put(`${API_BASE_URL}/api/auth/preferences/interests`, { interests }, { headers: { Authorization: `Bearer ${token}` } });
+        setCurrentUser(res.data?.user || currentUser);
+      }
+      setTagQuery(interests.join(","));
+      setAuthScreen(null);
+    } catch (err) {
+      setError(err?.response?.data?.message || "Could not save your interests.");
+    } finally {
+      setAuthSubmitting(false);
+    }
+  };
+
   const handleToggleFavorite = async (article) => {
     if (!token) {
       setPendingFavoriteArticle(article);
@@ -2181,7 +2216,14 @@ function App() {
               uiLabels={uiLabels}
             />
 
-            <AuthScreen
+            {authScreen === "onboarding" ? <InterestOnboarding
+              availableTags={availableTags}
+              onGoogleCredential={handleGoogleCredential}
+              onSaveInterests={handleSaveInterests}
+              saving={authSubmitting}
+              error={error}
+              onContinueWithoutAccount={() => setAuthScreen(null)}
+            /> : <AuthScreen
               authScreen={authScreen}
               handleAuthSubmit={handleAuthSubmit}
               authForm={authForm}
@@ -2189,7 +2231,7 @@ function App() {
               error={error}
               authSubmitting={authSubmitting}
               setAuthScreen={setAuthScreen}
-            />
+            />}
           </div>
         </div>
       </AppProvider>
