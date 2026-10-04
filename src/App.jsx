@@ -1223,6 +1223,7 @@ function App() {
       const res = await axios.post(`${API_BASE_URL}/api/auth/google`, { credential });
       setToken(res.data?.token || "");
       setCurrentUser(res.data?.user || null);
+      setAuthScreen("onboarding");
       setToast({ show: true, message: "Signed in with Google", type: "success" });
     } catch (err) {
       setError(err?.response?.data?.message || "Google sign-in failed.");
@@ -2231,6 +2232,7 @@ function App() {
               error={error}
               authSubmitting={authSubmitting}
               setAuthScreen={setAuthScreen}
+              onGoogleCredential={handleGoogleCredential}
             />}
           </div>
         </div>

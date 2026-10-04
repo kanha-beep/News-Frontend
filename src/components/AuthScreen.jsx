@@ -1,4 +1,5 @@
 import { memo } from "react";
+import { GoogleSignInButton } from "./InterestOnboarding.jsx";
 
 function AuthScreen({
   authScreen,
@@ -8,6 +9,7 @@ function AuthScreen({
   error,
   authSubmitting,
   setAuthScreen,
+  onGoogleCredential,
 }) {
   return (
     <div className="mx-auto max-w-md rounded-2xl bg-white p-6 shadow-sm">
@@ -25,7 +27,14 @@ function AuthScreen({
           : "Sign in to continue with your brain recharge."}
       </p>
 
-      <form onSubmit={handleAuthSubmit} className="mt-6 space-y-4">
+      <div className="mt-6">
+        <GoogleSignInButton onGoogleCredential={onGoogleCredential} />
+      </div>
+      <div className="my-5 flex items-center gap-3 text-xs font-medium uppercase tracking-wider text-slate-400">
+        <span className="h-px flex-1 bg-slate-200" /> or continue with email <span className="h-px flex-1 bg-slate-200" />
+      </div>
+
+      <form onSubmit={handleAuthSubmit} className="space-y-4">
         {authScreen === "register" ? (
           <div>
             <label className="mb-2 block text-sm font-semibold text-slate-700">
