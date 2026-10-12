@@ -34,23 +34,7 @@ function TopNavbarAuth({
         </div> */}
       </div>
 
-      <div className="flex justify-end">
-        <button
-          type="button"
-          onClick={() => {
-            setAuthScreen(null);
-            if (pendingFavoriteArticle) {
-              setPendingFavoriteArticle(null);
-            }
-            if (!token) {
-              setActiveView("all");
-            }
-          }}
-          className="rounded-full bg-slate-200 px-4 py-2 text-sm font-semibold text-slate-700"
-        >
-          Back to News
-        </button>
-      </div>
+      <div aria-hidden="true" />
     </nav>
   );
 }

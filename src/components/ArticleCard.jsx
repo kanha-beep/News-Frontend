@@ -91,7 +91,7 @@ function ArticleCard({
 
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
         <p className="mb-3 shrink-0 text-sm font-semibold uppercase tracking-[0.2em] text-slate-400">
-          {article.pubDate || "No publish date"}
+          {(article.pubDate || "No publish date").replace(/\s*\+0530\b/g, "")}
         </p>
 
         {preferredLanguage !== "en" ? (
@@ -115,7 +115,7 @@ function ArticleCard({
         ) : null}
 
         <h2
-          className="mb-3 font-bold text-slate-900"
+          className="line-clamp-5 mb-3 font-bold text-slate-900"
           style={{
             fontSize: `${2 * textScale}rem`,
             lineHeight: 1.1,

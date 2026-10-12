@@ -51,7 +51,7 @@ export default function InterestOnboarding({ availableTags, onGoogleCredential, 
           {tags.length ? tags.map((tag) => <button key={tag} type="button" onClick={() => toggleTag(tag)} className={`rounded-full px-4 py-2 text-sm font-semibold transition ${selected.includes(tag) ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-700 hover:bg-slate-200"}`}>#{tag}</button>) : <p className="text-sm text-slate-500">Topics are being loaded…</p>}
         </div>
         <button type="button" disabled={saving} onClick={() => onSaveInterests(selected)} className="mt-7 w-full rounded-xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white disabled:opacity-50">{saving ? "Saving…" : "Finish and view my feed"}</button>
-        <button type="button" onClick={onContinueWithoutAccount} className="mt-3 w-full text-sm font-semibold text-slate-500 hover:text-slate-800">Continue without signing in</button>
+        {/* <button type="button" onClick={onContinueWithoutAccount} className="mt-3 w-full text-sm font-semibold text-slate-500 hover:text-slate-800">Continue without signing in</button> */}
       </div>
     </div>
   );

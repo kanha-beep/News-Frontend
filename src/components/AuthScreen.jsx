@@ -10,7 +10,12 @@ function AuthScreen({
   authSubmitting,
   setAuthScreen,
   onGoogleCredential,
+  onBackToNews,
 }) {
+  const toggleAuthMode = () => {
+    setAuthScreen((prev) => (prev === "register" ? "login" : "register"));
+  };
+
   return (
     <div className="mx-auto max-w-md rounded-2xl bg-white p-6 shadow-sm">
       <p className="text-sm font-medium uppercase tracking-[0.25em] text-blue-600">
@@ -111,24 +116,33 @@ function AuthScreen({
         </button>
       </form>
 
-      <div className="mt-4 flex items-center justify-between gap-3"  onClick={() =>
-            setAuthScreen((prev) => (prev === "register" ? "login" : "register"))
-          }>
-        <p className="text-sm text-slate-500">
+      <div className="mt-4 flex items-center justify-between gap-3">
+        <p
+          onClick={toggleAuthMode}
+          className="text-sm text-slate-500"
+        >
           {authScreen === "register"
             ? "Already have an account?"
             : "Need a new account?"}
         </p>
         <button
           type="button"
-          onClick={() =>
-            setAuthScreen((prev) => (prev === "register" ? "login" : "register"))
-          }
+          onClick={toggleAuthMode}
           className="rounded-full bg-slate-200 px-4 py-2 text-sm font-semibold text-slate-700"
         >
           {authScreen === "register" ? "SignIn" : "Register"}
         </button>
       </div>
+
+      {authScreen === "register" ? (
+        <button
+          type="button"
+          onClick={onBackToNews}
+          className="mt-6 w-full rounded-xl border bg-slate-100 border-slate-300 px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+        >
+          Back to News
+        </button>
+      ) : null}
     </div>
   );
 }

@@ -10,6 +10,7 @@ export default function TopNavbar({
   increaseTextScale,
   decreaseTextScale,
   uiLabels,
+  handleGoToTopNews,
 }) {
   const {
     authScreen,
@@ -43,6 +44,7 @@ export default function TopNavbar({
       decreaseTextScale={decreaseTextScale}
       increaseTextScale={increaseTextScale}
       uiLabels={uiLabels}
+      handleGoToTopNews={handleGoToTopNews}
     />
   );
 }

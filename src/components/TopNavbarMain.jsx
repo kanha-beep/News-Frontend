@@ -1,7 +1,6 @@
 import { memo } from "react";
 import { FaArrowUp, FaMinus, FaMoon, FaPlus, FaSun } from "react-icons/fa";
 import { LANGUAGE_OPTIONS, getLanguageLabel } from "./appHelpers.js";
-import { useNavigate } from "react-router-dom";
 function TopNavbarMain({
   toggleThemeMode,
   handleLanguageChange,
@@ -13,13 +12,24 @@ function TopNavbarMain({
   decreaseTextScale,
   increaseTextScale,
   uiLabels,
+  handleGoToTopNews,
 }) {
-  const navigate = useNavigate();
   return (
     <nav className="fixed inset-x-0 top-0 z-30 overflow-x-auto bg-white p-4">
       <div className="flex min-w-max flex-nowrap items-start gap-4">
-        <div className="shrink-0 flex items-center font-semibold shadow-sm py-2">
-          <div className="honesty" onClick={() => navigate("/home")}>
+        <div className="shrink-0 flex bg-white items-center font-semibold shadow-sm py-2">
+          <div
+            onClick={handleGoToTopNews}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(event) => {
+              if (event.key === "Enter" || event.key === " ") {
+                event.preventDefault();
+                handleGoToTopNews();
+              }
+            }}
+            aria-label="Go to top news"
+          >
             NewsPoll
           </div>
           {/* <img

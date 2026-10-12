@@ -1124,6 +1124,24 @@ function App() {
     setError("");
   };
 
+  const handleBackToNews = () => {
+    setAuthScreen(null);
+    setPendingFavoriteArticle(null);
+    if (!token) {
+      setActiveView("all");
+    }
+  };
+
+  const handleGoToTopNews = () => {
+    clearSharedArticleFocus();
+    setActiveView("all");
+    setIsMobileTagMenuOpen(false);
+    setIsSearchModalOpen(false);
+    window.requestAnimationFrame(() => {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    });
+  };
+
   const clearSharedArticleFocus = () => {
     if (!sharedArticleLink) return;
 
@@ -2233,6 +2251,7 @@ function App() {
               authSubmitting={authSubmitting}
               setAuthScreen={setAuthScreen}
               onGoogleCredential={handleGoogleCredential}
+              onBackToNews={handleBackToNews}
             />}
           </div>
         </div>
@@ -2296,6 +2315,7 @@ function App() {
             decreaseTextScale={decreaseTextScale}
             openAuthScreen={openAuthScreen}
             uiLabels={uiLabels}
+            handleGoToTopNews={handleGoToTopNews}
           />
           <BottomNavbar
             handleViewChange={handleViewChange}

@@ -106,7 +106,11 @@ export const ARTICLE_SHARE_PARAM = "article";
 export const VIEW_QUERY_PARAM = "view";
 export const SUPPORTED_VIEWS = new Set(["all", "favorites", "alerts"]);
 const MAX_VISIBLE_TAG_LENGTH = 10;
-const EXCLUDED_VISIBLE_TAGS = new Set(["photo", "photos"]);
+const EXCLUDED_VISIBLE_TAGS = new Set([
+  "photo",
+  "photos",
+]);
+const DATE_STYLE_TAG_PATTERN = /^(?:\d{1,4}-\d{1,2}-\d{1,4}|\d{2}-\d{2})$/;
 
 const getSearchParams = () => {
   try {
@@ -166,6 +170,7 @@ export const sanitizeVisibleTags = (values = []) =>
     (tag) =>
       tag &&
       !EXCLUDED_VISIBLE_TAGS.has(tag) &&
+      !DATE_STYLE_TAG_PATTERN.test(tag) &&
       tag.length <= MAX_VISIBLE_TAG_LENGTH,
   );
 
