@@ -9,7 +9,13 @@ export function GoogleSignInButton({ onGoogleCredential }) {
     if (!GOOGLE_CLIENT_ID || !googleButtonRef.current) return undefined;
     const render = () => {
       if (!window.google?.accounts?.id) return;
-      window.google.accounts.id.initialize({ client_id: GOOGLE_CLIENT_ID, callback: onGoogleCredential });
+      window.google.accounts.id.initialize({
+        client_id: GOOGLE_CLIENT_ID,
+        callback: onGoogleCredential,
+        // Prefer Chrome's browser-mediated sign-in flow. It avoids fragile
+        // cross-window communication when a normal Google popup is blocked.
+        use_fedcm_for_prompt: true,
+      });
       window.google.accounts.id.renderButton(googleButtonRef.current, { theme: "outline", size: "large", width: 320, text: "continue_with" });
     };
     const existing = document.querySelector('script[data-google-identity]');
