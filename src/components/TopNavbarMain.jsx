@@ -30,13 +30,12 @@ function TopNavbarMain({
             }}
             aria-label="Go to top news"
           >
-            NewsPoll
+            <img
+              src="/lightning-news-logo.png"
+              alt="NewsPoll logo"
+              className="h-10 w-10 rounded-xl object-contain"
+            />
           </div>
-          {/* <img
-            src="/lightning-news-logo.png"
-            alt="NewsPoll logo"
-            className="h-14 w-14 rounded-full object-cover"
-          /> */}
         </div>
         <div className="flex shrink-0 gap-3">
           <button
