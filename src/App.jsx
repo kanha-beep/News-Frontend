@@ -2258,6 +2258,7 @@ function App() {
             {authScreen === "onboarding" ? <InterestOnboarding
               availableTags={availableTags}
               onGoogleCredential={handleGoogleCredential}
+              signedInUser={currentUser}
               onSaveInterests={handleSaveInterests}
               saving={authSubmitting}
               error={error}
