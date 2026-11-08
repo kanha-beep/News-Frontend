@@ -11,7 +11,7 @@ function TopNavbarAuth({
     <nav className="mb-6 grid gap-5 rounded-2xl bg-white p-4 shadow-sm sm:grid-cols-[auto_1fr_auto] sm:items-center">
       <div className="flex justify-start">
         <img
-          src="/lightning-news-logo.png"
+          src="/newspoll-logo.png"
           alt="NewsPoll logo"
           className="h-14 w-14 rounded-full object-cover"
         />

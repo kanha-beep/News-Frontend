@@ -31,7 +31,7 @@ function TopNavbarMain({
             aria-label="Go to top news"
           >
             <img
-              src="/lightning-news-logo.png"
+              src="/newspoll-logo.png"
               alt="NewsPoll logo"
               className="h-10 w-10 rounded-xl object-contain"
             />

@@ -1250,6 +1250,26 @@ function App() {
     }
   }, []);
 
+  useEffect(() => {
+    const receiveNativeGoogleCredential = (event) => {
+      try {
+        const message = typeof event.data === "string" ? JSON.parse(event.data) : event.data;
+        if (message?.type === "native-google-credential" && message.credential) {
+          handleGoogleCredential({ credential: message.credential });
+        }
+      } catch {
+        // Ignore unrelated browser and WebView messages.
+      }
+    };
+
+    window.addEventListener("message", receiveNativeGoogleCredential);
+    document.addEventListener("message", receiveNativeGoogleCredential);
+    return () => {
+      window.removeEventListener("message", receiveNativeGoogleCredential);
+      document.removeEventListener("message", receiveNativeGoogleCredential);
+    };
+  }, [handleGoogleCredential]);
+
   const handleSaveInterests = async (interests) => {
     setAuthSubmitting(true);
     setError("");

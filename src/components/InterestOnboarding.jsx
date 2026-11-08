@@ -4,9 +4,11 @@ const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || "";
 
 export function GoogleSignInButton({ onGoogleCredential }) {
   const googleButtonRef = useRef(null);
+  const isNativeWebView =
+    typeof window !== "undefined" && Boolean(window.ReactNativeWebView);
 
   useEffect(() => {
-    if (!GOOGLE_CLIENT_ID || !googleButtonRef.current) return undefined;
+    if (isNativeWebView || !GOOGLE_CLIENT_ID || !googleButtonRef.current) return undefined;
     const render = () => {
       if (!window.google?.accounts?.id) return;
       window.google.accounts.id.initialize({
@@ -28,7 +30,24 @@ export function GoogleSignInButton({ onGoogleCredential }) {
     script.onload = render;
     document.head.appendChild(script);
     return undefined;
-  }, [onGoogleCredential]);
+  }, [isNativeWebView, onGoogleCredential]);
+
+  if (isNativeWebView) {
+    return (
+      <button
+        type="button"
+        onClick={() =>
+          window.ReactNativeWebView.postMessage(
+            JSON.stringify({ type: "native-google-sign-in" }),
+          )
+        }
+        className="flex min-h-11 w-full items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-700 shadow-sm"
+      >
+        <span className="text-base font-bold text-blue-600">G</span>
+        Continue with Google
+      </button>
+    );
+  }
 
   if (!GOOGLE_CLIENT_ID) {
     return <button type="button" disabled className="flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-slate-100 px-4 py-3 text-sm font-semibold text-slate-400"><span className="text-base">G</span> Continue with Google <span className="rounded-full bg-slate-200 px-2 py-0.5 text-xs">Coming soon</span></button>;
