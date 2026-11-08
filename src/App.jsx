@@ -1250,6 +1250,18 @@ function App() {
     }
   }, []);
 
+  const handleSwitchGoogleAccount = useCallback(() => {
+    if (window.ReactNativeWebView) {
+      window.ReactNativeWebView.postMessage(
+        JSON.stringify({ type: "native-google-sign-in", forceAccountPicker: true }),
+      );
+      return;
+    }
+
+    window.google?.accounts?.id?.disableAutoSelect();
+    window.google?.accounts?.id?.prompt();
+  }, []);
+
   useEffect(() => {
     const receiveNativeGoogleCredential = (event) => {
       try {
@@ -2259,6 +2271,7 @@ function App() {
               availableTags={availableTags}
               onGoogleCredential={handleGoogleCredential}
               signedInUser={currentUser}
+              onSwitchGoogleAccount={handleSwitchGoogleAccount}
               onSaveInterests={handleSaveInterests}
               saving={authSubmitting}
               error={error}

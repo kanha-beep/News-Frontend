@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || "";
 
-export function GoogleSignInButton({ onGoogleCredential, signedInUser }) {
+export function GoogleSignInButton({ onGoogleCredential, signedInUser, onSwitchGoogleAccount }) {
   const googleButtonRef = useRef(null);
   const isNativeWebView =
     typeof window !== "undefined" && Boolean(window.ReactNativeWebView);
@@ -34,14 +34,23 @@ export function GoogleSignInButton({ onGoogleCredential, signedInUser }) {
 
   if (signedInUser?.email) {
     return (
-      <div className="flex min-h-11 w-full items-center gap-3 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-left text-sm text-slate-700 shadow-sm">
-        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-600 text-xs font-bold text-white">
-          {(signedInUser.name || signedInUser.email).trim().charAt(0).toUpperCase()}
-        </span>
-        <span className="min-w-0">
-          <span className="block font-semibold text-emerald-800">Signed in as</span>
-          <span className="block truncate text-slate-600">{signedInUser.email}</span>
-        </span>
+      <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-left text-sm text-slate-700 shadow-sm">
+        <div className="flex items-center gap-3">
+          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-600 text-xs font-bold text-white">
+            {(signedInUser.name || signedInUser.email).trim().charAt(0).toUpperCase()}
+          </span>
+          <span className="min-w-0">
+            <span className="block font-semibold text-emerald-800">{signedInUser.name || "Signed in"}</span>
+            <span className="block truncate text-slate-600">{signedInUser.email}</span>
+          </span>
+        </div>
+        <button
+          type="button"
+          onClick={onSwitchGoogleAccount}
+          className="mt-3 text-sm font-semibold text-emerald-800 underline underline-offset-2"
+        >
+          Use a different Google account
+        </button>
       </div>
     );
   }
@@ -70,7 +79,7 @@ export function GoogleSignInButton({ onGoogleCredential, signedInUser }) {
   return <div className="min-h-11" ref={googleButtonRef} />;
 }
 
-export default function InterestOnboarding({ availableTags, onGoogleCredential, onSaveInterests, saving, error, onContinueWithoutAccount, signedInUser }) {
+export default function InterestOnboarding({ availableTags, onGoogleCredential, onSaveInterests, saving, error, onContinueWithoutAccount, signedInUser, onSwitchGoogleAccount }) {
   const [selected, setSelected] = useState([]);
   const tags = useMemo(() => availableTags.slice(0, 40), [availableTags]);
 
@@ -81,7 +90,7 @@ export default function InterestOnboarding({ availableTags, onGoogleCredential, 
       <p className="text-xs font-semibold uppercase tracking-[0.28em] text-blue-600">Personalize your feed</p>
       <h1 className="mt-3 text-3xl font-bold text-slate-900">Sign in while your news loads</h1>
       <p className="mt-3 text-sm leading-6 text-slate-600">Continue with Google, then select topics you want to follow. Your feed is still loading in the background.</p>
-      <div className="mt-6"><GoogleSignInButton onGoogleCredential={onGoogleCredential} signedInUser={signedInUser} /></div>
+      <div className="mt-6"><GoogleSignInButton onGoogleCredential={onGoogleCredential} signedInUser={signedInUser} onSwitchGoogleAccount={onSwitchGoogleAccount} /></div>
       {error ? <p className="mt-4 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p> : null}
       <div className="mt-7 border-t border-slate-100 pt-6">
         <h2 className="text-lg font-bold text-slate-900">Choose your interests</h2>

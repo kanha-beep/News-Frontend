@@ -210,7 +210,7 @@ export const getCachedNewsPayload = () =>
   readCachedJson(NEWS_CACHE_KEY, {
     items: [],
     total: 0,
-    totalPages: 1,
+    totalPages: 1
   });
 
 export const getCachedTags = () =>
